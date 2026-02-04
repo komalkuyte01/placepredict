@@ -10,10 +10,16 @@
     "format": "biome format --write"
   },
   "dependencies": {
+    "@ark-ui/react": "^5.31.0",
+    "clsx": "^2.1.1",
     "lefthook": "^2.0.16",
+    "lucide-react": "^0.563.0",
+    "ml-regression": "^6.3.0",
     "next": "16.1.6",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "recharts": "^3.7.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@biomejs/biome": "2.2.0",
