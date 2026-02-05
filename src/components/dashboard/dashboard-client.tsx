@@ -108,7 +108,7 @@ export function DashboardClient() {
                 </Button>
               )}
               <a
-                href="https://github.com"
+                href="https://github.com/anuj-kuralkar/gradesight"
                 target="_blank"
                 rel="noopener noreferrer"
                 className={cn(
