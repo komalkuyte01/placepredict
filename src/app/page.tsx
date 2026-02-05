@@ -1,9 +1,9 @@
-import { DashboardClient } from "@/components/dashboard/dashboard-client";
+import { PlacementDashboard } from "@/components/dashboard/placement-dashboard";
 
 /**
  * Home page component.
- * Server component that renders the client-side dashboard.
+ * Renders the Placement Prediction Dashboard.
  */
 export default function HomePage() {
-  return <DashboardClient />;
+  return <PlacementDashboard />;
 }

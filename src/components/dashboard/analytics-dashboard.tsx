@@ -119,7 +119,7 @@ export function AnalyticsDashboard({
         <Tabs.List
           className={cn(
             "flex items-center gap-1 p-1",
-            "bg-slate-100 dark:bg-slate-800",
+            "bg-[hsl(210,40%,96.1%)]",
             "rounded-lg overflow-x-auto",
           )}
         >
@@ -128,10 +128,10 @@ export function AnalyticsDashboard({
             className={cn(
               "px-4 py-2 text-sm font-medium rounded-md",
               "transition-colors duration-150",
-              "text-slate-600 dark:text-slate-400",
-              "hover:text-slate-900 dark:hover:text-slate-200",
-              "data-[selected]:bg-white dark:data-[selected]:bg-slate-900",
-              "data-[selected]:text-slate-900 dark:data-[selected]:text-slate-100",
+              "text-[hsl(240,3.8%,46.1%)]",
+              "hover:text-[hsl(222.2,47.4%,11.2%)]",
+              "data-[selected]:bg-white",
+              "data-[selected]:text-[hsl(222.2,47.4%,11.2%)]",
               "data-[selected]:shadow-sm",
             )}
           >
@@ -142,10 +142,10 @@ export function AnalyticsDashboard({
             className={cn(
               "px-4 py-2 text-sm font-medium rounded-md",
               "transition-colors duration-150",
-              "text-slate-600 dark:text-slate-400",
-              "hover:text-slate-900 dark:hover:text-slate-200",
-              "data-[selected]:bg-white dark:data-[selected]:bg-slate-900",
-              "data-[selected]:text-slate-900 dark:data-[selected]:text-slate-100",
+              "text-[hsl(240,3.8%,46.1%)]",
+              "hover:text-[hsl(222.2,47.4%,11.2%)]",
+              "data-[selected]:bg-white",
+              "data-[selected]:text-[hsl(222.2,47.4%,11.2%)]",
               "data-[selected]:shadow-sm",
             )}
           >
@@ -156,10 +156,10 @@ export function AnalyticsDashboard({
             className={cn(
               "px-4 py-2 text-sm font-medium rounded-md",
               "transition-colors duration-150",
-              "text-slate-600 dark:text-slate-400",
-              "hover:text-slate-900 dark:hover:text-slate-200",
-              "data-[selected]:bg-white dark:data-[selected]:bg-slate-900",
-              "data-[selected]:text-slate-900 dark:data-[selected]:text-slate-100",
+              "text-[hsl(240,3.8%,46.1%)]",
+              "hover:text-[hsl(222.2,47.4%,11.2%)]",
+              "data-[selected]:bg-white",
+              "data-[selected]:text-[hsl(222.2,47.4%,11.2%)]",
               "data-[selected]:shadow-sm",
             )}
           >
@@ -170,10 +170,10 @@ export function AnalyticsDashboard({
             className={cn(
               "px-4 py-2 text-sm font-medium rounded-md",
               "transition-colors duration-150",
-              "text-slate-600 dark:text-slate-400",
-              "hover:text-slate-900 dark:hover:text-slate-200",
-              "data-[selected]:bg-white dark:data-[selected]:bg-slate-900",
-              "data-[selected]:text-slate-900 dark:data-[selected]:text-slate-100",
+              "text-[hsl(240,3.8%,46.1%)]",
+              "hover:text-[hsl(222.2,47.4%,11.2%)]",
+              "data-[selected]:bg-white",
+              "data-[selected]:text-[hsl(222.2,47.4%,11.2%)]",
               "data-[selected]:shadow-sm",
             )}
           >
@@ -269,7 +269,7 @@ export function AnalyticsDashboard({
                   return (
                     <div key={grade}>
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        <span className="text-sm font-medium text-[hsl(222.2,47.4%,11.2%)]">
                           {GRADE_LABELS[grade]}
                         </span>
                         <span className="text-sm text-slate-500">{count}</span>
@@ -322,12 +322,12 @@ export function AnalyticsDashboard({
                       className={cn(
                         "p-4 rounded-lg border",
                         corr.correlation >= 0
-                          ? "border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30"
-                          : "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30",
+                          ? "border-emerald-200 bg-emerald-50"
+                          : "border-red-200 bg-red-50",
                       )}
                     >
                       <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium text-slate-800 dark:text-slate-200">
+                        <span className="font-medium text-[hsl(222.2,47.4%,11.2%)]">
                           {corr.feature}
                         </span>
                         <Badge
@@ -355,8 +355,8 @@ export function AnalyticsDashboard({
                           className={cn(
                             "text-lg font-semibold",
                             corr.correlation >= 0
-                              ? "text-emerald-700 dark:text-emerald-400"
-                              : "text-red-700 dark:text-red-400",
+                              ? "text-emerald-700"
+                              : "text-red-700",
                           )}
                         >
                           {corr.correlation >= 0 ? "+" : ""}
@@ -402,19 +402,19 @@ export function AnalyticsDashboard({
                         key={prediction.studentId}
                         className={cn(
                           "p-4 rounded-lg",
-                          "border border-red-200 dark:border-red-800",
-                          "bg-red-50 dark:bg-red-950/30",
+                          "border border-red-200",
+                          "bg-red-50",
                         )}
                       >
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="font-medium text-slate-800 dark:text-slate-200">
+                              <span className="font-medium text-[hsl(222.2,47.4%,11.2%)]">
                                 Student {student.id}
                               </span>
                               <Badge variant="danger">High Risk</Badge>
                             </div>
-                            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                            <p className="mt-1 text-sm text-[hsl(240,3.8%,46.1%)]">
                               Predicted Grade:{" "}
                               {GRADE_LABELS[prediction.predictedGrade]}
                             </p>
@@ -434,8 +434,8 @@ export function AnalyticsDashboard({
                         </div>
 
                         {prediction.keyFactors.length > 0 && (
-                          <div className="mt-3 pt-3 border-t border-red-200 dark:border-red-800">
-                            <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-2">
+                          <div className="mt-3 pt-3 border-t border-red-200">
+                            <p className="text-xs font-medium text-[hsl(240,3.8%,46.1%)] mb-2">
                               Contributing Factors:
                             </p>
                             <div className="flex flex-wrap gap-2">
@@ -445,8 +445,8 @@ export function AnalyticsDashboard({
                                   className={cn(
                                     "text-xs px-2 py-1 rounded",
                                     factor.impact === "negative"
-                                      ? "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300"
-                                      : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300",
+                                      ? "bg-red-100 text-red-700"
+                                      : "bg-[hsl(210,40%,96.1%)] text-[hsl(222.2,47.4%,11.2%)]",
                                   )}
                                 >
                                   {factor.feature}: {factor.description}

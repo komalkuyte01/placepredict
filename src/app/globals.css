@@ -1,61 +1,59 @@
 @import "tailwindcss";
 
 :root {
-  /* Calm Dashboard Color Palette */
-  --color-slate-50: #f8fafc;
-  --color-slate-100: #f1f5f9;
-  --color-slate-200: #e2e8f0;
-  --color-slate-300: #cbd5e1;
-  --color-slate-400: #94a3b8;
-  --color-slate-500: #64748b;
-  --color-slate-600: #475569;
-  --color-slate-700: #334155;
-  --color-slate-800: #1e293b;
-  --color-slate-900: #0f172a;
-  --color-slate-950: #020617;
+  /* Shadcn-inspired Light Theme */
+  --background: 0 0% 100%;
+  --foreground: 240 10% 3.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 3.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 3.9%;
+  --primary: 240 5.9% 10%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 240 4.8% 95.9%;
+  --secondary-foreground: 240 5.9% 10%;
+  --muted: 240 4.8% 95.9%;
+  --muted-foreground: 240 3.8% 46.1%;
+  --accent: 240 4.8% 95.9%;
+  --accent-foreground: 240 5.9% 10%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 5.9% 90%;
+  --input: 240 5.9% 90%;
+  --ring: 240 5.9% 10%;
+  --radius: 0.5rem;
 
-  /* Accent Colors - Muted Academic Tones */
-  --color-accent-primary: #6366f1;
-  --color-accent-success: #10b981;
-  --color-accent-warning: #f59e0b;
-  --color-accent-danger: #ef4444;
-  --color-accent-info: #3b82f6;
+  /* Colorful Chart Colors - Vibrant & Modern */
+  --chart-blue: #2563eb;
+  --chart-green: #16a34a;
+  --chart-yellow: #ca8a04;
+  --chart-red: #dc2626;
+  --chart-purple: #9333ea;
+  --chart-pink: #db2777;
+  --chart-cyan: #0891b2;
+  --chart-orange: #ea580c;
 
-  /* Chart Colors */
-  --chart-1: #6366f1;
-  --chart-2: #8b5cf6;
-  --chart-3: #a855f7;
-  --chart-4: #d946ef;
-  --chart-5: #ec4899;
+  /* Semantic Colors */
+  --color-success: #16a34a;
+  --color-warning: #ca8a04;
+  --color-danger: #dc2626;
+  --color-info: #2563eb;
 }
 
 @theme inline {
-  --color-background: var(--color-slate-50);
-  --color-foreground: var(--color-slate-900);
-  --color-muted: var(--color-slate-500);
-  --color-border: var(--color-slate-200);
-  --color-card: #ffffff;
-  --color-card-foreground: var(--color-slate-800);
-  --color-primary: var(--color-accent-primary);
-  --color-primary-foreground: #ffffff;
-  --color-success: var(--color-accent-success);
-  --color-warning: var(--color-accent-warning);
-  --color-danger: var(--color-accent-danger);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-background: var(--color-slate-950);
-    --color-foreground: var(--color-slate-100);
-    --color-muted: var(--color-slate-400);
-    --color-border: var(--color-slate-800);
-    --color-card: var(--color-slate-900);
-    --color-card-foreground: var(--color-slate-200);
-  }
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-muted: hsl(var(--muted-foreground));
+  --color-border: hsl(var(--border));
+  --color-input-bg: hsl(var(--secondary));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
 }
 
 * {
-  border-color: var(--color-border);
+  border-color: hsl(var(--border));
 }
 
 html {
@@ -63,43 +61,132 @@ html {
 }
 
 body {
-  background-color: var(--color-background);
-  color: var(--color-foreground);
-  font-feature-settings:
-    "rlig" 1,
-    "calt" 1;
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-nunito), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-feature-settings: "rlig" 1, "calt" 1;
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar - subtle */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-slate-100);
-  border-radius: 4px;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-slate-300);
+  background: hsl(var(--border));
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-slate-400);
+  background: hsl(240 3.8% 70%);
 }
 
-@media (prefers-color-scheme: dark) {
-  ::-webkit-scrollbar-track {
-    background: var(--color-slate-800);
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: var(--color-slate-600);
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: var(--color-slate-500);
-  }
+/* Form styling - Shadcn style */
+input[type="number"],
+input[type="text"],
+select {
+  background-color: hsl(var(--background));
+  border: 1px solid hsl(var(--input));
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  font-size: 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  color: hsl(var(--foreground));
 }
+
+input[type="number"]:focus,
+input[type="text"]:focus,
+select:focus {
+  outline: none;
+  border-color: hsl(var(--ring));
+  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.1);
+}
+
+input[type="number"]::placeholder,
+input[type="text"]::placeholder {
+  color: hsl(var(--muted-foreground));
+}
+
+/* Slider styling - Modern */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 8px;
+  background: hsl(var(--secondary));
+  border-radius: 4px;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: hsl(var(--primary));
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid hsl(var(--background));
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  transition: transform 0.15s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+
+/* Checkbox styling - Shadcn style */
+input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 1px solid hsl(var(--primary));
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+input[type="checkbox"]:hover {
+  border-color: hsl(var(--primary));
+  background-color: hsl(var(--accent));
+}
+
+input[type="checkbox"]:checked {
+  background-color: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+}
+
+input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 5px;
+  height: 9px;
+  border: solid hsl(var(--primary-foreground));
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+input[type="checkbox"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2);
+}
+
+/* Select styling */
+select {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 8px center;
+  background-repeat: no-repeat;
+  background-size: 16px;
+  padding-right: 32px;
+}
+

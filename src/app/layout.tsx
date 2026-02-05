@@ -1,14 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Nunito, Fira_Code } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const nunito = Nunito({
+  variable: "--font-nunito",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const firaCode = Fira_Code({
+  variable: "--font-fira-code",
   subsets: ["latin"],
 });
 
@@ -16,20 +17,21 @@ const geistMono = Geist_Mono({
  * Application metadata for SEO and social sharing.
  */
 export const metadata: Metadata = {
-  title: "GradeSight | Student Performance Prediction Dashboard",
+  title: "PlacePredict | Student Placement Probability Predictor",
   description:
-    "AI-powered student performance prediction and analytics dashboard. Upload student data to get insights, risk assessments, and grade predictions.",
+    "ML-powered placement probability prediction for students. Analyze your profile, get probability scores, and receive personalized improvement suggestions.",
   keywords: [
-    "student performance",
-    "grade prediction",
-    "education analytics",
+    "placement prediction",
+    "campus placement",
+    "software developer",
     "machine learning",
-    "data science",
+    "career guidance",
+    "student placement",
   ],
-  authors: [{ name: "GradeSight Team" }],
+  authors: [{ name: "PlacePredict Team" }],
   openGraph: {
-    title: "GradeSight | Student Performance Prediction",
-    description: "AI-powered student performance prediction and analytics",
+    title: "PlacePredict | Placement Probability Predictor",
+    description: "ML-powered placement probability prediction and analysis",
     type: "website",
   },
 };
@@ -41,8 +43,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f8fafc" },
-    { media: "(prefers-color-scheme: dark)", color: "#020617" },
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#171717" },
   ],
 };
 
@@ -58,7 +60,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
+        className={`${nunito.variable} ${firaCode.variable} font-sans antialiased`}
       >
         {children}
       </body>
