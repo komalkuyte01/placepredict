@@ -22,13 +22,13 @@ interface BadgeProps {
  * Variant style mappings for badges.
  */
 const variantStyles: Record<BadgeVariant, string> = {
-  default: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+  default: "bg-[hsl(210,40%,96.1%)] text-[hsl(222.2,47.4%,11.2%)]",
   success:
-    "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300",
+    "bg-emerald-100 text-emerald-700",
   warning:
-    "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300",
-  danger: "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300",
-  info: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300",
+    "bg-amber-100 text-amber-700",
+  danger: "bg-red-100 text-red-700",
+  info: "bg-indigo-100 text-indigo-700",
 };
 
 /**
@@ -94,9 +94,9 @@ const buttonVariantStyles: Record<ButtonVariant, string> = {
   primary:
     "bg-indigo-600 text-white hover:bg-indigo-700 active:bg-indigo-800 disabled:bg-indigo-400",
   secondary:
-    "bg-slate-100 text-slate-700 hover:bg-slate-200 active:bg-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700",
+    "bg-[hsl(210,40%,96.1%)] text-[hsl(222.2,47.4%,11.2%)] hover:bg-[hsl(214.3,31.8%,91.4%)] active:bg-[hsl(214.3,31.8%,86%)]",
   ghost:
-    "bg-transparent text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800",
+    "bg-transparent text-[hsl(240,3.8%,46.1%)] hover:bg-[hsl(210,40%,96.1%)]",
   danger:
     "bg-red-600 text-white hover:bg-red-700 active:bg-red-800 disabled:bg-red-400",
 };
@@ -176,18 +176,18 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "bg-white dark:bg-slate-900",
-        "border border-slate-200 dark:border-slate-800",
+        "bg-white",
+        "border border-[hsl(214.3,31.8%,91.4%)]",
         "rounded-xl p-5",
         className,
       )}
     >
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+          <p className="text-sm font-medium text-[hsl(240,3.8%,46.1%)]">
             {label}
           </p>
-          <p className="mt-2 text-3xl font-semibold text-slate-800 dark:text-slate-200">
+          <p className="mt-2 text-3xl font-semibold text-[hsl(222.2,47.4%,11.2%)]">
             {value}
           </p>
 
@@ -195,9 +195,9 @@ export function StatCard({
             <p
               className={cn(
                 "mt-2 text-sm flex items-center gap-1",
-                trend === "up" && "text-emerald-600 dark:text-emerald-400",
-                trend === "down" && "text-red-600 dark:text-red-400",
-                trend === "neutral" && "text-slate-500 dark:text-slate-400",
+                trend === "up" && "text-emerald-600",
+                trend === "down" && "text-red-600",
+                trend === "neutral" && "text-[hsl(240,3.8%,46.1%)]",
               )}
             >
               {trend === "up" && "↑"}
@@ -208,7 +208,7 @@ export function StatCard({
         </div>
 
         {icon && (
-          <div className="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-lg">
+          <div className="p-2.5 bg-[hsl(210,40%,96.1%)] rounded-lg">
             {icon}
           </div>
         )}
@@ -257,18 +257,18 @@ export function ProgressBar({
       {(label || showValue) && (
         <div className="flex items-center justify-between mb-1.5">
           {label && (
-            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+            <span className="text-sm font-medium text-[hsl(222.2,47.4%,11.2%)]">
               {label}
             </span>
           )}
           {showValue && (
-            <span className="text-sm text-slate-500 dark:text-slate-400">
+            <span className="text-sm text-[hsl(240,3.8%,46.1%)]">
               {clampedValue.toFixed(0)}%
             </span>
           )}
         </div>
       )}
-      <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+      <div className="h-2 bg-[hsl(214.3,31.8%,91.4%)] rounded-full overflow-hidden">
         <div
           className={cn(
             "h-full rounded-full transition-all duration-300",

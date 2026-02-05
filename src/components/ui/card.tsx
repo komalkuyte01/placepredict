@@ -18,8 +18,8 @@ export function Card({ children, className }: CardProps) {
   return (
     <div
       className={cn(
-        "bg-white dark:bg-slate-900",
-        "border border-slate-200 dark:border-slate-800",
+        "bg-white",
+        "border border-[hsl(214.3,31.8%,91.4%)]",
         "rounded-xl shadow-sm",
         className,
       )}
@@ -46,7 +46,7 @@ export function CardHeader({ children, className }: CardHeaderProps) {
   return (
     <div
       className={cn(
-        "px-6 py-4 border-b border-slate-200 dark:border-slate-800",
+        "px-6 py-4 border-b border-[hsl(214.3,31.8%,91.4%)]",
         className,
       )}
     >
@@ -72,7 +72,7 @@ export function CardTitle({ children, className }: CardTitleProps) {
   return (
     <h3
       className={cn(
-        "text-lg font-semibold text-slate-800 dark:text-slate-200",
+        "text-lg font-semibold text-[hsl(222.2,47.4%,11.2%)]",
         className,
       )}
     >
@@ -98,7 +98,7 @@ export function CardDescription({ children, className }: CardDescriptionProps) {
   return (
     <p
       className={cn(
-        "mt-1 text-sm text-slate-500 dark:text-slate-400",
+        "mt-1 text-sm text-[hsl(240,3.8%,46.1%)]",
         className,
       )}
     >

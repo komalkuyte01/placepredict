@@ -79,38 +79,37 @@ export function FileDropzone({
           "w-full min-h-[200px] p-8",
           "border-2 border-dashed rounded-xl",
           "transition-all duration-200 ease-in-out",
-          "border-slate-300 dark:border-slate-700",
-          "hover:border-indigo-400 dark:hover:border-indigo-500",
-          "hover:bg-slate-50 dark:hover:bg-slate-900/50",
+          "border-[hsl(214.3,31.8%,91.4%)]",
+          "hover:border-indigo-400",
+          "hover:bg-[hsl(210,40%,98%)]",
           "data-[dragging]:border-indigo-500 data-[dragging]:bg-indigo-50/50",
-          "dark:data-[dragging]:bg-indigo-950/30",
           isProcessing && "opacity-60 cursor-not-allowed",
         )}
       >
         <div
           className={cn(
             "flex items-center justify-center w-16 h-16 rounded-full",
-            "bg-slate-100 dark:bg-slate-800",
+            "bg-[hsl(210,40%,96.1%)]",
             "transition-colors duration-200",
           )}
         >
           {isProcessing ? (
             <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
           ) : (
-            <Upload className="w-8 h-8 text-slate-500 dark:text-slate-400" />
+            <Upload className="w-8 h-8 text-[hsl(240,3.8%,46.1%)]" />
           )}
         </div>
 
         <div className="text-center">
-          <p className="text-lg font-medium text-slate-700 dark:text-slate-300">
+          <p className="text-lg font-medium text-[hsl(222.2,47.4%,11.2%)]">
             {isProcessing ? "Processing file..." : "Drop your file here"}
           </p>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          <p className="mt-1 text-sm text-[hsl(240,3.8%,46.1%)]">
             or click to browse
           </p>
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500">
+        <div className="flex items-center gap-2 text-xs text-[hsl(240,3.8%,46.1%)]">
           <FileSpreadsheet className="w-4 h-4" />
           <span>CSV, XLSX, or XLS (max 10MB)</span>
         </div>
@@ -156,14 +155,14 @@ export function UploadStatus({
       className={cn(
         "flex items-start gap-3 p-4 rounded-lg",
         success
-          ? "bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800"
-          : "bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800",
+          ? "bg-emerald-50 border border-emerald-200"
+          : "bg-red-50 border border-red-200",
       )}
     >
       {success ? (
-        <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
+        <CheckCircle className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
       ) : (
-        <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+        <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
       )}
 
       <div className="flex-1 min-w-0">
@@ -171,8 +170,8 @@ export function UploadStatus({
           className={cn(
             "font-medium",
             success
-              ? "text-emerald-800 dark:text-emerald-200"
-              : "text-red-800 dark:text-red-200",
+              ? "text-emerald-800"
+              : "text-red-800",
           )}
         >
           {success ? "File processed successfully" : "Processing failed"}
@@ -181,18 +180,18 @@ export function UploadStatus({
           className={cn(
             "mt-1 text-sm",
             success
-              ? "text-emerald-700 dark:text-emerald-300"
-              : "text-red-700 dark:text-red-300",
+              ? "text-emerald-700"
+              : "text-red-700",
           )}
         >
           {message}
         </p>
 
         {success && recordCount !== undefined && (
-          <div className="mt-2 flex items-center gap-4 text-sm text-emerald-600 dark:text-emerald-400">
+          <div className="mt-2 flex items-center gap-4 text-sm text-emerald-600">
             <span>{recordCount} records loaded</span>
             {errorCount !== undefined && errorCount > 0 && (
-              <span className="text-amber-600 dark:text-amber-400">
+              <span className="text-amber-600">
                 {errorCount} warnings
               </span>
             )}

@@ -82,20 +82,20 @@ export function DashboardClient() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+    <div className="min-h-screen bg-[hsl(210,40%,98%)]">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm border-b border-slate-200 dark:border-slate-800">
+      <header className="sticky top-0 z-40 bg-white/80 backdrop-blur-sm border-b border-[hsl(214.3,31.8%,91.4%)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/50">
-                <GraduationCap className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-indigo-100">
+                <GraduationCap className="w-6 h-6 text-indigo-600" />
               </div>
               <div>
-                <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                <h1 className="text-lg font-semibold text-[hsl(222.2,47.4%,11.2%)]">
                   GradeSight
                 </h1>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-xs text-[hsl(240,3.8%,46.1%)]">
                   Student Performance Prediction
                 </p>
               </div>
@@ -113,9 +113,8 @@ export function DashboardClient() {
                 rel="noopener noreferrer"
                 className={cn(
                   "p-2 rounded-lg",
-                  "text-slate-500 hover:text-slate-700",
-                  "dark:text-slate-400 dark:hover:text-slate-200",
-                  "hover:bg-slate-100 dark:hover:bg-slate-800",
+                  "text-[hsl(240,3.8%,46.1%)] hover:text-[hsl(222.2,47.4%,11.2%)]",
+                  "hover:bg-[hsl(210,40%,96.1%)]",
                   "transition-colors",
                 )}
               >
@@ -133,10 +132,10 @@ export function DashboardClient() {
           <div className="max-w-2xl mx-auto space-y-6">
             {/* Hero Section */}
             <div className="text-center py-8">
-              <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">
+              <h2 className="text-3xl font-bold text-[hsl(222.2,47.4%,11.2%)]">
                 Predict Student Performance
               </h2>
-              <p className="mt-3 text-lg text-slate-600 dark:text-slate-400">
+              <p className="mt-3 text-lg text-[hsl(240,3.8%,46.1%)]">
                 Upload your student data to get AI-powered predictions and
                 insights
               </p>
@@ -197,16 +196,16 @@ export function DashboardClient() {
             </div>
 
             {/* Dataset Info */}
-            <Card className="bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+            <Card className="bg-[hsl(210,40%,96.1%)] border-[hsl(214.3,31.8%,91.4%)]">
               <CardContent className="py-4">
-                <p className="text-sm text-slate-600 dark:text-slate-400">
+                <p className="text-sm text-[hsl(240,3.8%,46.1%)]">
                   <span className="font-medium">Supported Format:</span> Upload
                   CSV or Excel files following the{" "}
                   <a
                     href="https://www.kaggle.com/datasets/prajwalkanade/student-performance-prediction-dataset"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-indigo-600 dark:text-indigo-400 hover:underline"
+                    className="text-indigo-600 hover:underline"
                   >
                     Student Performance Prediction Dataset
                   </a>{" "}
@@ -226,9 +225,9 @@ export function DashboardClient() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-200 dark:border-slate-800 mt-auto">
+      <footer className="border-t border-[hsl(214.3,31.8%,91.4%)] mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+          <p className="text-center text-sm text-[hsl(240,3.8%,46.1%)]">
             GradeSight — Data Science College Project ©{" "}
             {new Date().getFullYear()}
           </p>
@@ -258,17 +257,17 @@ function FeatureCard({ icon, title, description }: FeatureCardProps) {
     <div
       className={cn(
         "p-4 rounded-xl",
-        "bg-white dark:bg-slate-900",
-        "border border-slate-200 dark:border-slate-800",
+        "bg-white",
+        "border border-[hsl(214.3,31.8%,91.4%)]",
       )}
     >
-      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400">
+      <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-indigo-100 text-indigo-600">
         {icon}
       </div>
-      <h3 className="mt-3 font-medium text-slate-800 dark:text-slate-200">
+      <h3 className="mt-3 font-medium text-[hsl(222.2,47.4%,11.2%)]">
         {title}
       </h3>
-      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+      <p className="mt-1 text-sm text-[hsl(240,3.8%,46.1%)]">
         {description}
       </p>
     </div>
