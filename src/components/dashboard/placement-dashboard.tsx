@@ -1,13 +1,25 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { Upload, FileText, AlertCircle, CheckCircle, Briefcase } from "lucide-react";
-import { cn } from "@/lib/utils/cn";
-import type { CandidateProfile, PlacementPrediction, ResumeParseResult } from "@/lib/types/placement";
-import { createEmptyProfile, predictPlacement } from "@/lib/ml/placement-ml-engine";
-import { parseResume } from "@/lib/parsers/resume-parser";
+import {
+  AlertCircle,
+  Briefcase,
+  CheckCircle,
+  FileText,
+  Upload,
+} from "lucide-react";
+import { useCallback, useState } from "react";
 import { CandidateForm } from "@/components/forms/candidate-form";
 import { PredictionResults } from "@/components/results/prediction-results";
+import {
+  createEmptyProfile,
+  predictPlacement,
+} from "@/lib/ml/placement-ml-engine";
+import type {
+  CandidateProfile,
+  PlacementPrediction,
+  ResumeParseResult,
+} from "@/lib/types/placement";
+import { cn } from "@/lib/utils/cn";
 
 type ViewState = "input" | "results";
 
@@ -17,10 +29,15 @@ type ViewState = "input" | "results";
  */
 export function PlacementDashboard() {
   const [view, setView] = useState<ViewState>("input");
-  const [profile, setProfile] = useState<CandidateProfile>(createEmptyProfile());
-  const [prediction, setPrediction] = useState<PlacementPrediction | null>(null);
+  const [profile, setProfile] = useState<CandidateProfile>(
+    createEmptyProfile(),
+  );
+  const [prediction, setPrediction] = useState<PlacementPrediction | null>(
+    null,
+  );
   const [resumeUploaded, setResumeUploaded] = useState(false);
-  const [resumeParseResult, setResumeParseResult] = useState<ResumeParseResult | null>(null);
+  const [resumeParseResult, setResumeParseResult] =
+    useState<ResumeParseResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
   /**
@@ -29,30 +46,111 @@ export function PlacementDashboard() {
   const handleResumeUpload = useCallback(async (file: File) => {
     setIsProcessing(true);
     try {
-      const result = await parseResume(file);
+      // Create FormData for API call
+      const formData = new FormData();
+      formData.append("file", file);
+
+      // Call API route to parse PDF
+      const response = await fetch("/api/parse-resume", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result: ResumeParseResult = await response.json();
       setResumeParseResult(result);
-      
+
       if (result.success && result.extractedData) {
-        // Merge extracted data with current profile
-        setProfile((prev) => ({
-          ...prev,
-          academic: {
-            ...prev.academic,
-            ...result.extractedData.academic,
-          },
-          technical: {
-            ...prev.technical,
-            ...result.extractedData.technical,
-          },
-          experience: {
-            ...prev.experience,
-            ...result.extractedData.experience,
-          },
-        }));
+        // Merge extracted data with current profile - only update fields that have values
+        setProfile((prev) => {
+          const newProfile = { ...prev };
+
+          // Merge academic data (only non-zero/non-empty values)
+          if (result.extractedData.academic) {
+            const academic = result.extractedData.academic;
+            newProfile.academic = {
+              ...prev.academic,
+              ...(academic.cgpa && academic.cgpa > 0
+                ? { cgpa: academic.cgpa }
+                : {}),
+              ...(academic.tenthPercentage && academic.tenthPercentage > 0
+                ? { tenthPercentage: academic.tenthPercentage }
+                : {}),
+              ...(academic.twelfthPercentage && academic.twelfthPercentage > 0
+                ? { twelfthPercentage: academic.twelfthPercentage }
+                : {}),
+              ...(academic.degreeBranch && academic.degreeBranch !== "Other"
+                ? { degreeBranch: academic.degreeBranch }
+                : {}),
+            };
+          }
+
+          // Merge technical data
+          if (result.extractedData.technical) {
+            const tech = result.extractedData.technical;
+            newProfile.technical = {
+              ...prev.technical,
+              programmingLanguages:
+                tech.programmingLanguages?.length > 0
+                  ? [
+                      ...new Set([
+                        ...prev.technical.programmingLanguages,
+                        ...tech.programmingLanguages,
+                      ]),
+                    ]
+                  : prev.technical.programmingLanguages,
+              dsaLevel:
+                tech.dsaLevel && tech.dsaLevel !== "None"
+                  ? tech.dsaLevel
+                  : prev.technical.dsaLevel,
+              projectsCount:
+                tech.projectsCount > 0
+                  ? tech.projectsCount
+                  : prev.technical.projectsCount,
+              hasInternship: tech.hasInternship || prev.technical.hasInternship,
+              certifications:
+                tech.certifications?.length > 0
+                  ? [
+                      ...new Set([
+                        ...prev.technical.certifications,
+                        ...tech.certifications,
+                      ]),
+                    ]
+                  : prev.technical.certifications,
+            };
+          }
+
+          // Merge experience data
+          if (result.extractedData.experience) {
+            const exp = result.extractedData.experience;
+            newProfile.experience = {
+              ...prev.experience,
+              hackathonsCount:
+                exp.hackathonsCount > 0
+                  ? exp.hackathonsCount
+                  : prev.experience.hackathonsCount,
+              hasOpenSourceContributions:
+                exp.hasOpenSourceContributions ||
+                prev.experience.hasOpenSourceContributions,
+              resumeScore:
+                exp.resumeScore > 0
+                  ? exp.resumeScore
+                  : prev.experience.resumeScore,
+            };
+          }
+
+          return newProfile;
+        });
         setResumeUploaded(true);
       }
     } catch (error) {
       console.error("Resume parsing failed:", error);
+      setResumeParseResult({
+        success: false,
+        extractedData: {},
+        confidence: 0,
+        missingFields: [],
+        warnings: ["Failed to parse resume. Please try again."],
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -100,6 +198,7 @@ export function PlacementDashboard() {
 
             {view === "results" && (
               <button
+                type="button"
                 onClick={handleReset}
                 className="px-4 py-2 text-sm font-medium text-[hsl(240,5.9%,10%)] hover:bg-[hsl(240,4.8%,95.9%)] rounded-lg transition-colors"
               >
@@ -120,7 +219,8 @@ export function PlacementDashboard() {
                 Student Placement Predictor
               </h2>
               <p className="mt-2 text-[hsl(240,3.8%,46.1%)] max-w-xl mx-auto">
-                Analyze your profile and get placement probability for Software Developer roles
+                Analyze your profile and get placement probability for Software
+                Developer roles
               </p>
             </div>
 
@@ -128,7 +228,9 @@ export function PlacementDashboard() {
             <div className="flex justify-center">
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-[hsl(240,4.8%,95.9%)] rounded-lg border border-[hsl(240,5.9%,90%)]">
                 <Briefcase className="w-4 h-4 text-[hsl(240,5.9%,10%)]" />
-                <span className="text-sm font-medium text-[hsl(240,5.9%,10%)]">Role: Software Developer</span>
+                <span className="text-sm font-medium text-[hsl(240,5.9%,10%)]">
+                  Role: Software Developer
+                </span>
               </div>
             </div>
 
@@ -139,9 +241,9 @@ export function PlacementDashboard() {
                 Upload Resume (Optional)
               </h3>
               <p className="text-sm text-[hsl(240,3.8%,46.1%)] mb-4">
-                Upload your resume to auto-fill some fields. Supports .txt files.
+                Upload your resume (PDF) to auto-fill fields automatically.
               </p>
-              
+
               <ResumeDropzone
                 onFileUpload={handleResumeUpload}
                 isProcessing={isProcessing}
@@ -149,12 +251,14 @@ export function PlacementDashboard() {
               />
 
               {resumeParseResult && (
-                <div className={cn(
-                  "mt-4 p-4 rounded-lg",
-                  resumeParseResult.success 
-                    ? "bg-emerald-50 border border-emerald-200"
-                    : "bg-red-50 border border-red-200"
-                )}>
+                <div
+                  className={cn(
+                    "mt-4 p-4 rounded-lg",
+                    resumeParseResult.success
+                      ? "bg-emerald-50 border border-emerald-200"
+                      : "bg-red-50 border border-red-200",
+                  )}
+                >
                   <div className="flex items-start gap-2">
                     {resumeParseResult.success ? (
                       <CheckCircle className="w-5 h-5 text-emerald-600 mt-0.5" />
@@ -162,19 +266,22 @@ export function PlacementDashboard() {
                       <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
                     )}
                     <div>
-                      <p className={cn(
-                        "font-medium",
-                        resumeParseResult.success 
-                          ? "text-emerald-800"
-                          : "text-red-800"
-                      )}>
-                        {resumeParseResult.success 
+                      <p
+                        className={cn(
+                          "font-medium",
+                          resumeParseResult.success
+                            ? "text-emerald-800"
+                            : "text-red-800",
+                        )}
+                      >
+                        {resumeParseResult.success
                           ? `Resume parsed (${resumeParseResult.confidence}% confidence)`
                           : "Failed to parse resume"}
                       </p>
                       {resumeParseResult.missingFields.length > 0 && (
                         <p className="text-sm text-[hsl(240,3.8%,46.1%)] mt-1">
-                          Please fill manually: {resumeParseResult.missingFields.join(", ")}
+                          Please fill manually:{" "}
+                          {resumeParseResult.missingFields.join(", ")}
                         </p>
                       )}
                     </div>
@@ -209,7 +316,8 @@ export function PlacementDashboard() {
               PlacePredict — Student Placement Probability Predictor
             </p>
             <p className="text-xs text-[hsl(240,3.8%,60%)]">
-              ⚠️ Disclaimer: This is a probabilistic model for guidance only. Results may vary based on actual recruitment processes.
+              ⚠️ Disclaimer: This is a probabilistic model for guidance only.
+              Results may vary based on actual recruitment processes.
             </p>
           </div>
         </div>
@@ -227,7 +335,11 @@ interface ResumeDropzoneProps {
   isUploaded: boolean;
 }
 
-function ResumeDropzone({ onFileUpload, isProcessing, isUploaded }: ResumeDropzoneProps) {
+function ResumeDropzone({
+  onFileUpload,
+  isProcessing,
+  isUploaded,
+}: ResumeDropzoneProps) {
   const [isDragging, setIsDragging] = useState(false);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -252,7 +364,10 @@ function ResumeDropzone({ onFileUpload, isProcessing, isUploaded }: ResumeDropzo
   };
 
   return (
+    // biome-ignore lint/a11y/useSemanticElements: This is a dropzone wrapper, actual interaction handled by hidden input
     <div
+      role="button"
+      tabIndex={0}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -264,23 +379,25 @@ function ResumeDropzone({ onFileUpload, isProcessing, isUploaded }: ResumeDropzo
         isDragging
           ? "border-[hsl(240,5.9%,10%)] bg-[hsl(240,4.8%,95.9%)]"
           : "border-[hsl(240,5.9%,90%)] hover:border-[hsl(240,5.9%,70%)] hover:bg-[hsl(240,4.8%,95.9%)]",
-        isUploaded && "border-emerald-500 bg-emerald-50"
+        isUploaded && "border-emerald-500 bg-emerald-50",
       )}
     >
       <input
         type="file"
-        accept=".txt,.pdf,.doc,.docx"
+        accept=".pdf,application/pdf"
         onChange={handleFileInput}
         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
         disabled={isProcessing}
       />
-      
+
       {isProcessing ? (
         <div className="w-8 h-8 border-2 border-[hsl(240,5.9%,10%)] border-t-transparent rounded-full animate-spin" />
       ) : isUploaded ? (
         <>
           <CheckCircle className="w-8 h-8 text-emerald-600" />
-          <span className="mt-2 text-sm text-emerald-700 font-medium">Resume uploaded</span>
+          <span className="mt-2 text-sm text-emerald-700 font-medium">
+            Resume uploaded
+          </span>
         </>
       ) : (
         <>
