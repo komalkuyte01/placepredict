@@ -23,7 +23,7 @@ interface ParsedResumeData {
     backlogs?: number;
   };
   technical: {
-    programmingLanguages: string[];
+    technicalSkills: string[];
     dsaLevel: DSALevel;
     projectsCount: number;
     hasInternship: boolean;
@@ -32,13 +32,36 @@ interface ParsedResumeData {
   experience: {
     hackathonsCount: number;
     hasOpenSourceContributions: boolean;
-    resumeScore: number;
+    resumeATSScore: number;
   };
 }
 
-const RESUME_PARSE_PROMPT = `You are an expert resume parser. Analyze the following resume content and extract structured information.
+const RESUME_PARSE_PROMPT = `You are an expert ATS (Applicant Tracking System) resume analyzer. Analyze the following resume content and extract structured information that would be relevant for placement/hiring processes.
 
-Return a JSON object with the following structure (use null for fields you cannot find):
+## Fields to Extract:
+
+Looking for these specific data fields from the resume:
+
+1. **Academic Information:**
+   - CGPA/GPA (scale 0-10)
+   - 10th/SSC/Secondary percentage
+   - 12th/HSC/Higher Secondary percentage
+   - Degree Branch (Computer Science, Information Technology, Electronics, Electrical, Mechanical, Civil, or Other)
+   - Active Backlogs count
+
+2. **Technical Skills:**
+   - Technical Skills (Programming languages, frameworks, tools, databases, cloud platforms, etc.)
+   - DSA/Algorithm proficiency level
+   - Number of projects
+   - Internship experience (yes/no)
+   - Certifications
+
+3. **Experience & ATS Score:**
+   - Hackathon participation count
+   - Open source contributions (yes/no)
+   - Resume ATS Score (0-100)
+
+Return a JSON object with this EXACT structure (use null for fields not found):
 
 {
   "academic": {
@@ -49,32 +72,44 @@ Return a JSON object with the following structure (use null for fields you canno
     "backlogs": <number or 0>
   },
   "technical": {
-    "programmingLanguages": [<array of programming languages/frameworks/tools found>],
-    "dsaLevel": <"None" | "Basic" | "Intermediate" | "Advanced" based on DSA/algorithm mentions>,
+    "technicalSkills": [<array of ALL technical skills: programming languages, frameworks, libraries, databases, tools, cloud platforms, etc.>],
+    "dsaLevel": <"None" | "Basic" | "Intermediate" | "Advanced">,
     "projectsCount": <number of projects mentioned>,
-    "hasInternship": <true if internship experience mentioned, false otherwise>,
+    "hasInternship": <true if internship experience mentioned>,
     "certifications": [<array of certifications found>]
   },
   "experience": {
     "hackathonsCount": <number of hackathons participated>,
     "hasOpenSourceContributions": <true if open source contributions mentioned>,
-    "resumeScore": <estimated resume quality score 0-100 based on content richness>
+    "resumeATSScore": <ATS compatibility score 0-100>
   }
 }
 
-DSA Level Guidelines:
-- "Advanced": Mentions competitive programming, LeetCode hard, dynamic programming, graph algorithms, segment trees
-- "Intermediate": Mentions data structures, algorithms, sorting, searching, trees, LeetCode medium
-- "Basic": Basic programming concepts, arrays, strings, loops
+## DSA Level Guidelines:
+- "Advanced": Competitive programming, LeetCode hard problems, advanced DP, graph algorithms, segment trees, CodeForces/CodeChef ratings
+- "Intermediate": Data structures, algorithms, trees, graphs, LeetCode medium, basic DP
+- "Basic": Basic programming, arrays, strings, loops, simple sorting
 - "None": No DSA/algorithm mentions
 
-IMPORTANT: 
-- Return ONLY valid JSON, no markdown code blocks, no explanation, no text before or after
-- Use proper capitalization for programming languages (e.g., "JavaScript", "Python", "React")
-- Extract ALL technical skills mentioned
-- Be thorough in counting projects
-- Look for education section for academic details (10th/12th can be SSC/HSC, secondary school percentages)
-- If you cannot determine a value, use null for numbers and empty array [] for arrays
+## ATS Score Calculation Guidelines (0-100):
+Calculate based on these factors:
+- Clear formatting & structure: +15 points
+- Relevant keywords for tech roles: +20 points
+- Quantified achievements: +15 points
+- Action verbs usage: +10 points
+- No spelling/grammar errors: +10 points
+- Proper sections (Education, Experience, Skills, Projects): +15 points
+- Contact information present: +5 points
+- Appropriate length (1-2 pages): +5 points
+- Technical skills clearly listed: +5 points
+
+IMPORTANT:
+- Return ONLY valid JSON, no markdown code blocks, no explanation
+- Use proper capitalization ("JavaScript", "Python", "React", "AWS", "Docker")
+- Extract ALL technical skills: languages, frameworks, libraries, databases, tools, cloud platforms, DevOps tools, etc.
+- Count ALL projects mentioned (personal, academic, professional)
+- Look for CGPA, GPA, percentage marks in education section
+- If field not found, use null for numbers and [] for arrays
 
 Resume content:
 `;
@@ -100,6 +135,16 @@ async function extractTextFromPDF(buffer: Buffer): Promise<string> {
 }
 
 /**
+ * Available Gemini model names to try (in order of preference)
+ */
+const GEMINI_MODELS = [
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
+  "gemini-pro",
+];
+
+/**
  * Parse resume using Gemini AI with the PDF sent directly as file
  */
 async function parseResumeWithGemini(
@@ -108,60 +153,68 @@ async function parseResumeWithGemini(
   mimeType: string,
   extractedText?: string,
 ): Promise<ParsedResumeData> {
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  let lastError: Error | null = null;
 
-  let result: Awaited<ReturnType<typeof model.generateContent>> | undefined;
-
-  // Try with inline data first (for PDFs), fall back to text
-  if (mimeType === "application/pdf" && fileBuffer.length < 4 * 1024 * 1024) {
-    // Send PDF directly to Gemini (under 4MB limit for inline)
-    const filePart: Part = {
-      inlineData: {
-        data: fileBuffer.toString("base64"),
-        mimeType: "application/pdf",
-      },
-    };
-
+  // Try each model until one works
+  for (const modelName of GEMINI_MODELS) {
     try {
-      result = await model.generateContent([RESUME_PARSE_PROMPT, filePart]);
-    } catch {
-      // If direct PDF fails, fall back to extracted text
-      if (extractedText) {
-        result = await model.generateContent(
-          RESUME_PARSE_PROMPT + extractedText,
-        );
+      const model = genAI.getGenerativeModel({ model: modelName });
+      let result: Awaited<ReturnType<typeof model.generateContent>> | undefined;
+
+      // Try with inline data first (for PDFs), fall back to text
+      if (mimeType === "application/pdf" && fileBuffer.length < 4 * 1024 * 1024) {
+        // Send PDF directly to Gemini (under 4MB limit for inline)
+        const filePart: Part = {
+          inlineData: {
+            data: fileBuffer.toString("base64"),
+            mimeType: "application/pdf",
+          },
+        };
+
+        try {
+          result = await model.generateContent([RESUME_PARSE_PROMPT, filePart]);
+        } catch {
+          // If direct PDF fails, fall back to extracted text
+          if (extractedText) {
+            result = await model.generateContent(
+              RESUME_PARSE_PROMPT + extractedText,
+            );
+          } else {
+            throw new Error("Could not process PDF");
+          }
+        }
+      } else if (extractedText) {
+        // Use extracted text for large files or non-PDFs
+        result = await model.generateContent(RESUME_PARSE_PROMPT + extractedText);
       } else {
-        throw new Error("Could not process PDF");
+        throw new Error("No content to process");
       }
+
+      const response = result.response;
+      const responseText = response.text();
+
+      // Clean up the response - remove markdown code blocks and trim
+      let cleanedResponse = responseText
+        .replace(/```json\s*/gi, "")
+        .replace(/```\s*/g, "")
+        .trim();
+
+      // Try to find JSON object in the response
+      const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        cleanedResponse = jsonMatch[0];
+      }
+
+      console.log(`Successfully used model: ${modelName}`);
+      return JSON.parse(cleanedResponse);
+    } catch (error) {
+      console.log(`Model ${modelName} failed:`, error instanceof Error ? error.message : error);
+      lastError = error instanceof Error ? error : new Error(String(error));
+      // Continue to next model
     }
-  } else if (extractedText) {
-    // Use extracted text for large files or non-PDFs
-    result = await model.generateContent(RESUME_PARSE_PROMPT + extractedText);
-  } else {
-    throw new Error("No content to process");
   }
 
-  const response = result.response;
-  const responseText = response.text();
-
-  // Clean up the response - remove markdown code blocks and trim
-  let cleanedResponse = responseText
-    .replace(/```json\s*/gi, "")
-    .replace(/```\s*/g, "")
-    .trim();
-
-  // Try to find JSON object in the response
-  const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
-  if (jsonMatch) {
-    cleanedResponse = jsonMatch[0];
-  }
-
-  try {
-    return JSON.parse(cleanedResponse);
-  } catch {
-    console.error("Failed to parse Gemini response:", responseText);
-    throw new Error("Failed to parse AI response");
-  }
+  throw lastError || new Error("All Gemini models failed");
 }
 
 export async function POST(request: NextRequest) {
@@ -257,8 +310,8 @@ export async function POST(request: NextRequest) {
     if (!parsedData.academic?.twelfthPercentage)
       missingFields.push("12th Percentage");
 
-    if (parsedData.technical?.programmingLanguages?.length === 0) {
-      warnings.push("No programming languages detected");
+    if (parsedData.technical?.technicalSkills?.length === 0) {
+      warnings.push("No technical skills detected");
     }
 
     // Build extracted data object (only include non-null values)
@@ -276,7 +329,7 @@ export async function POST(request: NextRequest) {
     const extractedData = {
       academic: academicData,
       technical: {
-        programmingLanguages: parsedData.technical?.programmingLanguages || [],
+        technicalSkills: parsedData.technical?.technicalSkills || [],
         dsaLevel: parsedData.technical?.dsaLevel || "None",
         projectsCount: parsedData.technical?.projectsCount || 0,
         hasInternship: parsedData.technical?.hasInternship || false,
@@ -286,7 +339,7 @@ export async function POST(request: NextRequest) {
         hackathonsCount: parsedData.experience?.hackathonsCount || 0,
         hasOpenSourceContributions:
           parsedData.experience?.hasOpenSourceContributions || false,
-        resumeScore: parsedData.experience?.resumeScore || 50,
+        resumeATSScore: parsedData.experience?.resumeATSScore || 50,
       },
     };
 
@@ -296,7 +349,7 @@ export async function POST(request: NextRequest) {
       parsedData.academic?.cgpa,
       parsedData.academic?.tenthPercentage,
       parsedData.academic?.twelfthPercentage,
-      (parsedData.technical?.programmingLanguages?.length || 0) > 0,
+      (parsedData.technical?.technicalSkills?.length || 0) > 0,
       parsedData.technical?.dsaLevel &&
         parsedData.technical.dsaLevel !== "None",
       (parsedData.technical?.projectsCount || 0) > 0,
@@ -304,6 +357,7 @@ export async function POST(request: NextRequest) {
       (parsedData.technical?.certifications?.length || 0) > 0,
       (parsedData.experience?.hackathonsCount || 0) > 0,
       parsedData.experience?.hasOpenSourceContributions,
+      (parsedData.experience?.resumeATSScore || 0) > 0,
     ].filter(Boolean).length;
 
     const confidence = Math.round((filledFields / totalFields) * 100);

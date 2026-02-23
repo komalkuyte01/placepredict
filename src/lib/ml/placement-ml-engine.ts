@@ -38,14 +38,14 @@ const FEATURE_NAMES = [
   "10th Percentage",
   "12th Percentage",
   "Branch Relevance",
-  "Programming Languages",
+  "Technical Skills",
   "DSA Level",
   "Projects Count",
   "Has Internship",
   "Certifications",
   "Hackathons",
   "Open Source",
-  "Resume Score",
+  "Resume ATS Score",
   "Aptitude Score",
   "Communication",
   "Mock Interview",
@@ -70,14 +70,14 @@ export function extractFeatures(profile: CandidateProfile): number[] {
     profile.academic.tenthPercentage,
     profile.academic.twelfthPercentage,
     ["Computer Science", "Information Technology", "Electronics"].includes(profile.academic.degreeBranch) ? 1 : 0,
-    profile.technical.programmingLanguages.length,
+    profile.technical.technicalSkills.length,
     dsaToNumeric(profile.technical.dsaLevel),
     profile.technical.projectsCount,
     profile.technical.hasInternship ? 1 : 0,
     profile.technical.certifications.length,
     profile.experience.hackathonsCount,
     profile.experience.hasOpenSourceContributions ? 1 : 0,
-    profile.experience.resumeScore,
+    profile.experience.resumeATSScore,
     profile.softSkills.aptitudeScore,
     profile.softSkills.communicationScore,
     profile.softSkills.mockInterviewScore,
@@ -344,7 +344,7 @@ export const SOFTWARE_DEVELOPER_CRITERIA: RoleCriteria = {
   experience: {
     minHackathons: 1,
     openSourcePreferred: true,
-    minResumeScore: 70,
+    minResumeATSScore: 70,
   },
   softSkills: {
     minAptitudeScore: 60,
@@ -517,7 +517,7 @@ function formatFeatureValue(feature: string, value: number): string {
     case "CGPA": return `${value.toFixed(2)}/10`;
     case "10th Percentage":
     case "12th Percentage":
-    case "Resume Score":
+    case "Resume ATS Score":
     case "Aptitude Score": return `${Math.round(value)}%`;
     case "Has Internship":
     case "Open Source":
@@ -545,7 +545,7 @@ function getSuggestionForFeature(
     "Programming Languages": { target: `${criteria.technical.minProgrammingLanguages}+`, text: "Master one language, learn 2-3 others" },
     "Aptitude Score": { target: `${criteria.softSkills.minAptitudeScore}%+`, text: "Practice aptitude daily on IndiaBix, PrepInsta" },
     "Communication": { target: `${criteria.softSkills.minCommunicationScore}/10`, text: "Join speaking clubs, practice mock interviews" },
-    "Resume Score": { target: `${criteria.experience.minResumeScore}%`, text: "Use action verbs, quantify achievements" },
+    "Resume ATS Score": { target: `${criteria.experience.minResumeATSScore}%`, text: "Use action verbs, quantify achievements, proper formatting" },
   };
   return suggestions[feature] ?? { target: "Improve", text: `Work on improving ${feature.toLowerCase()}` };
 }
@@ -604,7 +604,7 @@ export function createEmptyProfile(): CandidateProfile {
       degreeBranch: "Computer Science",
     },
     technical: {
-      programmingLanguages: [],
+      technicalSkills: [],
       dsaLevel: "Basic",
       projectsCount: 0,
       hasInternship: false,
@@ -613,7 +613,7 @@ export function createEmptyProfile(): CandidateProfile {
     experience: {
       hackathonsCount: 0,
       hasOpenSourceContributions: false,
-      resumeScore: 50,
+      resumeATSScore: 50,
     },
     softSkills: {
       aptitudeScore: 50,

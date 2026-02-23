@@ -1,6 +1,6 @@
-# GradeSight
+﻿# PlacePredict
 
-A modern, responsive Student Performance Prediction Dashboard built with Next.js 16. This application uses machine learning to analyze student data and predict academic outcomes.
+A modern, responsive Student Placement Probability Prediction system built with Next.js 16. This application uses machine learning to analyze candidate profiles and predict placement chances for Software Developer roles.
 
 ![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=flat-square&logo=typescript)
@@ -8,20 +8,21 @@ A modern, responsive Student Performance Prediction Dashboard built with Next.js
 
 ## Features
 
-- **📊 AI-Powered Predictions**: Uses multivariate linear regression to predict student grades based on various factors
-- **📁 File Upload**: Drag-and-drop support for CSV and Excel files
-- **📈 Interactive Analytics**: Comprehensive charts and visualizations powered by Recharts
-- **🎯 Risk Assessment**: Identifies at-risk students with detailed contributing factors
-- **🌙 Dark Mode**: Automatic dark mode support based on system preferences
-- **📱 Responsive Design**: Fully fluid layout from mobile to ultra-wide monitors
+- **AI Resume Parsing**: Upload your resume (PDF) and Gemini AI automatically extracts relevant information
+- **Resume ATS Score**: AI-calculated ATS (Applicant Tracking System) compatibility score
+- **ML-Powered Predictions**: Ensemble machine learning models (Logistic Regression, Random Forest, KNN) for accurate probability prediction
+- **Personalized Insights**: Identifies strengths, weaknesses, and provides actionable improvement suggestions
+- **Feature Contribution Analysis**: Understand which factors impact your placement probability most
+- **Responsive Design**: Fully fluid layout from mobile to ultra-wide monitors
 
 ## Tech Stack
 
 - **Framework**: Next.js 16 with React 19
+- **AI Resume Parser**: Google Gemini AI
+- **ML Libraries**: ml-logistic-regression, ml-random-forest, ml-knn, ml-pca, ml-kmeans
 - **UI Components**: Ark UI (headless) + Tailwind CSS 4
 - **Charts**: Recharts
-- **ML Engine**: ml-regression (TypeScript-native)
-- **File Parsing**: xlsx (CSV/Excel support)
+- **PDF Parsing**: pdf-parse
 - **Icons**: Lucide React
 - **Linting/Formatting**: Biome
 - **Package Manager**: Bun
@@ -32,17 +33,18 @@ A modern, responsive Student Performance Prediction Dashboard built with Next.js
 src/
 ├── app/                    # Next.js App Router
 │   ├── layout.tsx          # Root layout with metadata
-│   ├── page.tsx            # Home page (RSC)
-│   └── globals.css         # Global styles & Tailwind config
+│   ├── page.tsx            # Home page (Placement Dashboard)
+│   ├── globals.css         # Global styles & Tailwind config
+│   └── api/
+│       └── parse-resume/   # Gemini AI resume parsing endpoint
 ├── components/
-│   ├── charts/             # Recharts visualization components
-│   ├── dashboard/          # Dashboard & analytics components
-│   ├── ui/                 # Reusable UI primitives
-│   └── upload/             # File upload components
+│   ├── dashboard/          # Placement dashboard component
+│   ├── forms/              # Candidate profile form
+│   ├── results/            # Prediction results display
+│   └── ui/                 # Reusable UI primitives
 └── lib/
-    ├── actions/            # Server Actions
-    ├── ml/                 # Prediction engine
-    ├── parsers/            # File parsing utilities
+    ├── ml/                 # ML prediction engine
+    ├── parsers/            # Resume parsing utilities
     ├── types/              # TypeScript type definitions
     └── utils/              # Utility functions
 ```
@@ -53,6 +55,7 @@ src/
 
 - [Bun](https://bun.sh/) (v1.0+)
 - Node.js 18+ (for compatibility)
+- Google Gemini API Key
 
 ### Installation
 
@@ -64,41 +67,52 @@ cd gradesight
 # Install dependencies
 bun install
 
+# Set up environment variables
+cp .env.example .env.local
+# Add your GEMINI_API_KEY to .env.local
+
 # Start development server
 bun run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to view the application.
 
+### Environment Variables
+
+Create a `.env.local` file with:
+
+```env
+GEMINI_API_KEY=your_gemini_api_key_here
+```
+
 ## Usage
 
-1. **Upload Data**: Drag and drop a CSV or Excel file containing student data
-2. **View Analytics**: Explore grade distributions, correlations, and trends
-3. **Identify At-Risk Students**: Review students flagged as high-risk with contributing factors
+1. **Upload Resume (Optional)**: Upload your PDF resume for AI-powered data extraction
+2. **Fill Profile**: Complete any missing fields in the candidate profile form
+3. **Run Prediction**: Click Run ML Prediction to get your placement probability
+4. **Review Results**: Analyze your strengths, weaknesses, and improvement suggestions
 
-### Data Format
+### Profile Fields
 
-The application expects data following the [Student Performance Prediction Dataset](https://www.kaggle.com/datasets/prajwalkanade/student-performance-prediction-dataset) schema:
-
-| Field | Type | Description |
-|-------|------|-------------|
-| StudentID | string/number | Unique identifier |
-| Age | number | Student age (15-22) |
-| Gender | string | "Male" or "Female" |
-| Ethnicity | number | 0-3 |
-| ParentalEducation | string | Education level |
-| StudyTimeWeekly | number | Hours per week |
-| Absences | number | Number of absences |
-| Tutoring | string | "Yes" or "No" |
-| ParentalSupport | string | "Low", "Medium", "High" |
-| Extracurricular | string | "Yes" or "No" |
-| Sports | string | "Yes" or "No" |
-| Music | string | "Yes" or "No" |
-| Volunteering | string | "Yes" or "No" |
-| GPA | number | 0.0 - 4.0 |
-| GradeClass | number | 0-4 (optional, for training) |
-
-A sample file is available at `/public/sample-student-data.csv`.
+| Section | Field | Description |
+|---------|-------|-------------|
+| **Academic** | CGPA | Grade Point Average (0-10) |
+| | 10th Percentage | Secondary school percentage |
+| | 12th Percentage | Higher secondary percentage |
+| | Degree Branch | Engineering branch |
+| | Active Backlogs | Number of failed subjects |
+| **Technical** | Programming Languages | Languages you know |
+| | DSA Level | Data Structures and Algorithms proficiency |
+| | Projects Count | Number of projects completed |
+| | Has Internship | Internship experience |
+| | Certifications | Professional certifications |
+| **Experience** | Hackathons | Number of hackathons participated |
+| | Open Source | Open source contributions |
+| | Resume ATS Score | AI-calculated ATS compatibility (0-100) |
+| **Soft Skills** | Aptitude Score | Aptitude test score (0-100) |
+| | Communication | Communication skills (1-10) |
+| | Mock Interview | Mock interview performance (1-10) |
+| | English Fluency | English proficiency (1-10) |
 
 ## Scripts
 
@@ -110,28 +124,6 @@ bun run lint     # Run Biome linter
 bun run format   # Format code with Biome
 ```
 
-## Prediction Engine
-
-The prediction engine uses a combination of:
-
-1. **Multivariate Linear Regression**: When sufficient labeled data is provided
-2. **Heuristic Scoring**: Fallback algorithm based on educational research
-
-Key factors influencing predictions:
-- **GPA** (45% weight): Current academic performance
-- **Study Time** (35% weight): Weekly study hours
-- **Absences** (-25% weight): Negative correlation with performance
-- **Tutoring** (15% weight): Additional academic support
-- **Parental Support** (12% weight): Family involvement
-
-## Design Philosophy
-
-**Calm Dashboard Aesthetic**: The UI uses a muted, professional color palette with slate tones. This creates a focused, academic environment that minimizes visual distractions while maintaining excellent readability.
-
 ## License
 
-MIT License
-
----
-
-Built with ❤️ for Data Science education
+MIT
