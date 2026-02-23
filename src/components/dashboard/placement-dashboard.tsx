@@ -89,15 +89,15 @@ export function PlacementDashboard() {
             const tech = result.extractedData.technical;
             newProfile.technical = {
               ...prev.technical,
-              programmingLanguages:
-                tech.programmingLanguages?.length > 0
+              technicalSkills:
+                tech.technicalSkills?.length > 0
                   ? [
                       ...new Set([
-                        ...prev.technical.programmingLanguages,
-                        ...tech.programmingLanguages,
+                        ...prev.technical.technicalSkills,
+                        ...tech.technicalSkills,
                       ]),
                     ]
-                  : prev.technical.programmingLanguages,
+                  : prev.technical.technicalSkills,
               dsaLevel:
                 tech.dsaLevel && tech.dsaLevel !== "None"
                   ? tech.dsaLevel
@@ -131,10 +131,10 @@ export function PlacementDashboard() {
               hasOpenSourceContributions:
                 exp.hasOpenSourceContributions ||
                 prev.experience.hasOpenSourceContributions,
-              resumeScore:
-                exp.resumeScore > 0
-                  ? exp.resumeScore
-                  : prev.experience.resumeScore,
+              resumeATSScore:
+                exp.resumeATSScore > 0
+                  ? exp.resumeATSScore
+                  : prev.experience.resumeATSScore,
             };
           }
 

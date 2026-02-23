@@ -1,4 +1,3 @@
-export { PredictionEngine, predictionEngine } from "./prediction-engine";
 export { 
   predictPlacement, 
   createEmptyProfile, 

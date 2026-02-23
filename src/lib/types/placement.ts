@@ -45,7 +45,7 @@ export interface AcademicInfo {
  * Technical skills of a candidate.
  */
 export interface TechnicalSkills {
-  programmingLanguages: string[];
+  technicalSkills: string[];
   dsaLevel: DSALevel;
   projectsCount: number;
   hasInternship: boolean;
@@ -58,7 +58,7 @@ export interface TechnicalSkills {
 export interface ExperienceInfo {
   hackathonsCount: number;
   hasOpenSourceContributions: boolean;
-  resumeScore: number; // 0-100
+  resumeATSScore: number; // 0-100 ATS compatibility score
 }
 
 /**
@@ -166,7 +166,7 @@ export interface RoleCriteria {
   experience: {
     minHackathons: number;
     openSourcePreferred: boolean;
-    minResumeScore: number;
+    minResumeATSScore: number;
   };
   softSkills: {
     minAptitudeScore: number;

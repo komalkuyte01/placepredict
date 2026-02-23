@@ -19,7 +19,7 @@ interface CandidateFormProps {
  * Form for entering candidate details for ML prediction.
  */
 export function CandidateForm({ profile, onProfileChange, onSubmit }: CandidateFormProps) {
-  const [newLang, setNewLang] = useState("");
+  const [newSkill, setNewSkill] = useState("");
   const [newCert, setNewCert] = useState("");
 
   const updateAcademic = <K extends keyof CandidateProfile["academic"]>(
@@ -62,15 +62,15 @@ export function CandidateForm({ profile, onProfileChange, onSubmit }: CandidateF
     });
   };
 
-  const addProgrammingLanguage = () => {
-    if (newLang.trim() && !profile.technical.programmingLanguages.includes(newLang.trim())) {
-      updateTechnical("programmingLanguages", [...profile.technical.programmingLanguages, newLang.trim()]);
-      setNewLang("");
+  const addTechnicalSkill = () => {
+    if (newSkill.trim() && !profile.technical.technicalSkills.includes(newSkill.trim())) {
+      updateTechnical("technicalSkills", [...profile.technical.technicalSkills, newSkill.trim()]);
+      setNewSkill("");
     }
   };
 
-  const removeProgrammingLanguage = (lang: string) => {
-    updateTechnical("programmingLanguages", profile.technical.programmingLanguages.filter(l => l !== lang));
+  const removeTechnicalSkill = (skill: string) => {
+    updateTechnical("technicalSkills", profile.technical.technicalSkills.filter(s => s !== skill));
   };
 
   const addCertification = () => {
@@ -167,39 +167,39 @@ export function CandidateForm({ profile, onProfileChange, onSubmit }: CandidateF
         title="Technical Skills"
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField label="Programming Languages">
+          <FormField label="Technical Skills">
             <div className="space-y-2">
               <div className="flex gap-2">
                 <input
                   type="text"
-                  value={newLang}
-                  onChange={(e) => setNewLang(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && addProgrammingLanguage()}
+                  value={newSkill}
+                  onChange={(e) => setNewSkill(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && addTechnicalSkill()}
                   className="flex-1"
-                  placeholder="e.g., Python, JavaScript"
+                  placeholder="e.g., Python, React, AWS, Docker"
                 />
                 <button
                   type="button"
-                  onClick={addProgrammingLanguage}
+                  onClick={addTechnicalSkill}
                   className="px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
                 >
                   <Plus className="w-4 h-4" />
                 </button>
               </div>
               <div className="flex flex-wrap gap-2">
-                {profile.technical.programmingLanguages.map((lang) => (
+                {profile.technical.technicalSkills.map((skill) => (
                   <span
-                    key={lang}
+                    key={skill}
                     className="inline-flex items-center gap-1 px-2 py-1 bg-indigo-100 text-indigo-800 rounded-lg text-sm"
                   >
-                    {lang}
-                    <button type="button" onClick={() => removeProgrammingLanguage(lang)}>
+                    {skill}
+                    <button type="button" onClick={() => removeTechnicalSkill(skill)}>
                       <X className="w-3 h-3" />
                     </button>
                   </span>
                 ))}
               </div>
-              <p className="text-xs text-gray-500">Added: {profile.technical.programmingLanguages.length} languages</p>
+              <p className="text-xs text-gray-500">Added: {profile.technical.technicalSkills.length} skills (languages, frameworks, tools, etc.)</p>
             </div>
           </FormField>
 
@@ -312,21 +312,22 @@ export function CandidateForm({ profile, onProfileChange, onSubmit }: CandidateF
             </div>
           </FormField>
 
-          <FormField label="Resume Quality Score (0-100)">
+          <FormField label="Resume ATS Score (0-100)">
             <div className="space-y-2">
               <input
                 type="range"
                 min="0"
                 max="100"
-                value={profile.experience.resumeScore}
-                onChange={(e) => updateExperience("resumeScore", parseInt(e.target.value))}
+                value={profile.experience.resumeATSScore}
+                onChange={(e) => updateExperience("resumeATSScore", parseInt(e.target.value))}
                 className="w-full"
               />
               <div className="flex justify-between text-xs text-gray-500">
                 <span>Poor</span>
-                <span className="font-medium">{profile.experience.resumeScore}</span>
+                <span className="font-medium">{profile.experience.resumeATSScore}</span>
                 <span>Excellent</span>
               </div>
+              <p className="text-xs text-gray-400">Auto-calculated by AI if resume is uploaded</p>
             </div>
           </FormField>
         </div>
