@@ -181,7 +181,7 @@ export function CandidateForm({ profile, onProfileChange, onSubmit }: CandidateF
                 <button
                   type="button"
                   onClick={addTechnicalSkill}
-                  className="px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                  className="px-3 py-2 bg-[#6e44ff] text-white rounded-lg hover:bg-[#5c35e6]"
                 >
                   <Plus className="w-4 h-4" />
                 </button>
@@ -190,7 +190,7 @@ export function CandidateForm({ profile, onProfileChange, onSubmit }: CandidateF
                 {profile.technical.technicalSkills.map((skill) => (
                   <span
                     key={skill}
-                    className="inline-flex items-center gap-1 px-2 py-1 bg-indigo-100 text-indigo-800 rounded-lg text-sm"
+                    className="inline-flex items-center gap-1 px-2 py-1 bg-[#6e44ff]/10 text-[#6e44ff] rounded-lg text-sm"
                   >
                     {skill}
                     <button type="button" onClick={() => removeTechnicalSkill(skill)}>
@@ -242,7 +242,7 @@ export function CandidateForm({ profile, onProfileChange, onSubmit }: CandidateF
                 <button
                   type="button"
                   onClick={addCertification}
-                  className="px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                  className="px-3 py-2 bg-[#6e44ff] text-white rounded-lg hover:bg-[#5c35e6]"
                 >
                   <Plus className="w-4 h-4" />
                 </button>

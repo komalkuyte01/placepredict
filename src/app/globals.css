@@ -1,43 +1,43 @@
 @import "tailwindcss";
 
 :root {
-  /* Shadcn-inspired Light Theme */
-  --background: 0 0% 100%;
-  --foreground: 240 10% 3.9%;
+  /* Modern Purple Theme - #6e44ff */
+  --background: 210 20% 99%;
+  --foreground: 220 14% 10%;
   --card: 0 0% 100%;
-  --card-foreground: 240 10% 3.9%;
+  --card-foreground: 220 14% 10%;
   --popover: 0 0% 100%;
-  --popover-foreground: 240 10% 3.9%;
-  --primary: 240 5.9% 10%;
-  --primary-foreground: 0 0% 98%;
-  --secondary: 240 4.8% 95.9%;
-  --secondary-foreground: 240 5.9% 10%;
-  --muted: 240 4.8% 95.9%;
-  --muted-foreground: 240 3.8% 46.1%;
-  --accent: 240 4.8% 95.9%;
-  --accent-foreground: 240 5.9% 10%;
-  --destructive: 0 84.2% 60.2%;
+  --popover-foreground: 220 14% 10%;
+  --primary: 253 100% 63%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 20% 96%;
+  --secondary-foreground: 220 14% 10%;
+  --muted: 210 20% 96%;
+  --muted-foreground: 215 14% 46%;
+  --accent: 253 100% 96%;
+  --accent-foreground: 253 100% 53%;
+  --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 98%;
-  --border: 240 5.9% 90%;
-  --input: 240 5.9% 90%;
-  --ring: 240 5.9% 10%;
-  --radius: 0.5rem;
+  --border: 214 20% 92%;
+  --input: 214 20% 92%;
+  --ring: 253 100% 63%;
+  --radius: 0.75rem;
 
-  /* Colorful Chart Colors - Vibrant & Modern */
-  --chart-blue: #2563eb;
-  --chart-green: #16a34a;
-  --chart-yellow: #ca8a04;
-  --chart-red: #dc2626;
-  --chart-purple: #9333ea;
-  --chart-pink: #db2777;
-  --chart-cyan: #0891b2;
-  --chart-orange: #ea580c;
+  /* Chart Colors - Purple Theme */
+  --chart-blue: #6e44ff;
+  --chart-green: #10B981;
+  --chart-yellow: #F59E0B;
+  --chart-red: #EF4444;
+  --chart-purple: #8B5CF6;
+  --chart-pink: #EC4899;
+  --chart-cyan: #06B6D4;
+  --chart-orange: #F97316;
 
   /* Semantic Colors */
-  --color-success: #16a34a;
-  --color-warning: #ca8a04;
-  --color-danger: #dc2626;
-  --color-info: #2563eb;
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-danger: #EF4444;
+  --color-info: #6e44ff;
 }
 
 @theme inline {

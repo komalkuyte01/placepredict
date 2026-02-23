@@ -206,7 +206,7 @@ export function PlacementDashboard({ initialMode = "upload", onBack }: Placement
                   <ArrowLeft className="w-5 h-5" />
                 </button>
               )}
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center shadow-sm">
+              <div className="w-10 h-10 rounded-lg bg-[#6e44ff] flex items-center justify-center shadow-lg shadow-[#6e44ff]/20">
                 <Briefcase className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -227,7 +227,7 @@ export function PlacementDashboard({ initialMode = "upload", onBack }: Placement
                   className={cn(
                     "px-3 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2",
                     showResumeSection 
-                      ? "bg-indigo-100 text-indigo-700" 
+                      ? "bg-[#6e44ff]/10 text-[#6e44ff]" 
                       : "text-[hsl(240,3.8%,46.1%)] hover:bg-[hsl(240,4.8%,95.9%)]"
                   )}
                 >
