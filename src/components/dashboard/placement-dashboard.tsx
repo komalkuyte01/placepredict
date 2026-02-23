@@ -2,12 +2,13 @@
 
 import {
   AlertCircle,
+  ArrowLeft,
   Briefcase,
   CheckCircle,
   FileText,
   Upload,
 } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CandidateForm } from "@/components/forms/candidate-form";
 import { PredictionResults } from "@/components/results/prediction-results";
 import {
@@ -23,11 +24,16 @@ import { cn } from "@/lib/utils/cn";
 
 type ViewState = "input" | "results";
 
+interface PlacementDashboardProps {
+  initialMode?: "upload" | "manual";
+  onBack?: () => void;
+}
+
 /**
  * Main Placement Prediction Dashboard.
  * Clean black & white UI for student placement prediction.
  */
-export function PlacementDashboard() {
+export function PlacementDashboard({ initialMode = "upload", onBack }: PlacementDashboardProps) {
   const [view, setView] = useState<ViewState>("input");
   const [profile, setProfile] = useState<CandidateProfile>(
     createEmptyProfile(),
@@ -39,6 +45,12 @@ export function PlacementDashboard() {
   const [resumeParseResult, setResumeParseResult] =
     useState<ResumeParseResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showResumeSection, setShowResumeSection] = useState(initialMode === "upload");
+
+  // Update showResumeSection when initialMode changes
+  useEffect(() => {
+    setShowResumeSection(initialMode === "upload");
+  }, [initialMode]);
 
   /**
    * Handle resume file upload.
@@ -174,7 +186,8 @@ export function PlacementDashboard() {
     setPrediction(null);
     setResumeUploaded(false);
     setResumeParseResult(null);
-  }, []);
+    setShowResumeSection(initialMode === "upload");
+  }, [initialMode]);
 
   return (
     <div className="min-h-screen bg-[hsl(0,0%,100%)]">
@@ -183,7 +196,17 @@ export function PlacementDashboard() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-[hsl(240,5.9%,10%)] flex items-center justify-center shadow-sm">
+              {onBack && (
+                <button
+                  type="button"
+                  onClick={onBack}
+                  className="p-2 -ml-2 mr-1 text-[hsl(240,3.8%,46.1%)] hover:text-[hsl(240,10%,3.9%)] hover:bg-[hsl(240,4.8%,95.9%)] rounded-lg transition-colors"
+                  aria-label="Back to home"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+              )}
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center shadow-sm">
                 <Briefcase className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -191,20 +214,37 @@ export function PlacementDashboard() {
                   PlacePredict
                 </h1>
                 <p className="text-xs text-[hsl(240,3.8%,46.1%)]">
-                  Placement Probability Predictor
+                  {initialMode === "upload" ? "Resume Analysis Mode" : "Manual Entry Mode"}
                 </p>
               </div>
             </div>
 
-            {view === "results" && (
-              <button
-                type="button"
-                onClick={handleReset}
-                className="px-4 py-2 text-sm font-medium text-[hsl(240,5.9%,10%)] hover:bg-[hsl(240,4.8%,95.9%)] rounded-lg transition-colors"
-              >
-                New Analysis
-              </button>
-            )}
+            <div className="flex items-center gap-2">
+              {view === "input" && (
+                <button
+                  type="button"
+                  onClick={() => setShowResumeSection(!showResumeSection)}
+                  className={cn(
+                    "px-3 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2",
+                    showResumeSection 
+                      ? "bg-indigo-100 text-indigo-700" 
+                      : "text-[hsl(240,3.8%,46.1%)] hover:bg-[hsl(240,4.8%,95.9%)]"
+                  )}
+                >
+                  <Upload className="w-4 h-4" />
+                  Resume
+                </button>
+              )}
+              {view === "results" && (
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  className="px-4 py-2 text-sm font-medium text-[hsl(240,5.9%,10%)] hover:bg-[hsl(240,4.8%,95.9%)] rounded-lg transition-colors"
+                >
+                  New Analysis
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -235,60 +275,62 @@ export function PlacementDashboard() {
             </div>
 
             {/* Resume Upload Section */}
-            <div className="bg-white rounded-xl p-6 border border-[hsl(240,5.9%,90%)] shadow-sm">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[hsl(240,10%,3.9%)]">
-                <Upload className="w-5 h-5" />
-                Upload Resume (Optional)
-              </h3>
-              <p className="text-sm text-[hsl(240,3.8%,46.1%)] mb-4">
-                Upload your resume (PDF) to auto-fill fields automatically.
-              </p>
+            {showResumeSection && (
+              <div className="bg-white rounded-xl p-6 border border-[hsl(240,5.9%,90%)] shadow-sm">
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[hsl(240,10%,3.9%)]">
+                  <Upload className="w-5 h-5" />
+                  Upload Resume
+                </h3>
+                <p className="text-sm text-[hsl(240,3.8%,46.1%)] mb-4">
+                  Upload your resume (PDF) and let AI extract your details automatically.
+                </p>
 
-              <ResumeDropzone
-                onFileUpload={handleResumeUpload}
-                isProcessing={isProcessing}
-                isUploaded={resumeUploaded}
-              />
+                <ResumeDropzone
+                  onFileUpload={handleResumeUpload}
+                  isProcessing={isProcessing}
+                  isUploaded={resumeUploaded}
+                />
 
-              {resumeParseResult && (
-                <div
-                  className={cn(
-                    "mt-4 p-4 rounded-lg",
-                    resumeParseResult.success
-                      ? "bg-emerald-50 border border-emerald-200"
-                      : "bg-red-50 border border-red-200",
-                  )}
-                >
-                  <div className="flex items-start gap-2">
-                    {resumeParseResult.success ? (
-                      <CheckCircle className="w-5 h-5 text-emerald-600 mt-0.5" />
-                    ) : (
-                      <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
+                {resumeParseResult && (
+                  <div
+                    className={cn(
+                      "mt-4 p-4 rounded-lg",
+                      resumeParseResult.success
+                        ? "bg-emerald-50 border border-emerald-200"
+                        : "bg-red-50 border border-red-200",
                     )}
-                    <div>
-                      <p
-                        className={cn(
-                          "font-medium",
-                          resumeParseResult.success
-                            ? "text-emerald-800"
-                            : "text-red-800",
-                        )}
-                      >
-                        {resumeParseResult.success
-                          ? `Resume parsed (${resumeParseResult.confidence}% confidence)`
-                          : "Failed to parse resume"}
-                      </p>
-                      {resumeParseResult.missingFields.length > 0 && (
-                        <p className="text-sm text-[hsl(240,3.8%,46.1%)] mt-1">
-                          Please fill manually:{" "}
-                          {resumeParseResult.missingFields.join(", ")}
-                        </p>
+                  >
+                    <div className="flex items-start gap-2">
+                      {resumeParseResult.success ? (
+                        <CheckCircle className="w-5 h-5 text-emerald-600 mt-0.5" />
+                      ) : (
+                        <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
                       )}
+                      <div>
+                        <p
+                          className={cn(
+                            "font-medium",
+                            resumeParseResult.success
+                              ? "text-emerald-800"
+                              : "text-red-800",
+                          )}
+                        >
+                          {resumeParseResult.success
+                            ? `Resume parsed (${resumeParseResult.confidence}% confidence)`
+                            : "Failed to parse resume"}
+                        </p>
+                        {resumeParseResult.missingFields.length > 0 && (
+                          <p className="text-sm text-[hsl(240,3.8%,46.1%)] mt-1">
+                            Please fill manually:{" "}
+                            {resumeParseResult.missingFields.join(", ")}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
             {/* Candidate Form */}
             <CandidateForm

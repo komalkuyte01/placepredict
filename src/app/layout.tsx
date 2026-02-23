@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Nunito, Fira_Code } from "next/font/google";
+import { Poppins, Fira_Code } from "next/font/google";
 import "./globals.css";
 
-const nunito = Nunito({
-  variable: "--font-nunito",
+const poppins = Poppins({
+  variable: "--font-poppins",
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700", "800"],
 });
@@ -60,7 +60,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${nunito.variable} ${firaCode.variable} font-sans antialiased`}
+        className={`${poppins.variable} ${firaCode.variable} font-sans antialiased`}
       >
         {children}
       </body>
