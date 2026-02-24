@@ -10,7 +10,9 @@ import {
   AlertOctagon,
   ChevronDown,
   Loader2,
-  Bot
+  Bot,
+  TrendingUp,
+  Target
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import type { 
@@ -207,6 +209,161 @@ export function PredictionResults({
               The model may have biases based on training data. Use this as guidance only, 
               not as a definitive assessment of your placement chances.
             </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Analytics Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Skills Distribution Pie Chart */}
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[hsl(240,10%,3.9%)]">
+            <TrendingUp className="w-5 h-5 text-blue-500" />
+            Skills Distribution
+          </h3>
+          <div className="flex items-center justify-center gap-4 sm:gap-8">
+            <div className="relative w-36 h-36 sm:w-52 sm:h-52 flex-shrink-0">
+              <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+                {(() => {
+                  const academicScore = Math.max(5, ((profile.academic?.cgpa ?? 0) / 10) * 100);
+                  const technicalScore = Math.max(5, Math.min(100, (profile.technical?.technicalSkills?.length ?? 0) * 15));
+                  const dsaScore = Math.max(5, profile.technical?.dsaLevel === "Advanced" ? 100 : profile.technical?.dsaLevel === "Intermediate" ? 70 : profile.technical?.dsaLevel === "Basic" ? 40 : 10);
+                  const softScore = Math.max(5, ((profile.softSkills?.communicationScore ?? 0) / 10) * 100);
+                  const expScore = Math.max(5, Math.min(100, (profile.experience?.hackathonsCount ?? 0) * 25 + (profile.technical?.hasInternship ? 50 : 0)));
+                  
+                  const total = academicScore + technicalScore + dsaScore + softScore + expScore;
+                  const scores = [
+                    { value: academicScore, color: "#8b5cf6" },
+                    { value: technicalScore, color: "#06b6d4" },
+                    { value: dsaScore, color: "#10b981" },
+                    { value: softScore, color: "#f59e0b" },
+                    { value: expScore, color: "#ef4444" },
+                  ];
+                  
+                  let cumulativePercent = 0;
+                  const radius = 30;
+                  const circumference = 2 * Math.PI * radius;
+                  
+                  return scores.map((score, i) => {
+                    const percent = (score.value / total) * 100;
+                    const strokeDasharray = `${(percent / 100) * circumference} ${circumference}`;
+                    const strokeDashoffset = -((cumulativePercent / 100) * circumference);
+                    cumulativePercent += percent;
+                    
+                    return (
+                      <circle
+                        key={i}
+                        cx="50"
+                        cy="50"
+                        r={radius}
+                        fill="none"
+                        stroke={score.color}
+                        strokeWidth="24"
+                        strokeDasharray={strokeDasharray}
+                        strokeDashoffset={strokeDashoffset}
+                        className="transition-all duration-500"
+                      />
+                    );
+                  });
+                })()}
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-sm font-bold text-gray-700">{prediction.probability}%</span>
+              </div>
+            </div>
+            <div className="flex-1 space-y-2">
+              {[
+                { label: "Academics", color: "bg-violet-500", value: profile.academic?.cgpa?.toFixed(1) ?? "0" },
+                { label: "Technical", color: "bg-cyan-500", value: `${profile.technical?.technicalSkills?.length ?? 0} skills` },
+                { label: "DSA", color: "bg-emerald-500", value: profile.technical?.dsaLevel ?? "None" },
+                { label: "Soft Skills", color: "bg-amber-500", value: `${profile.softSkills?.communicationScore ?? 0}/10` },
+                { label: "Experience", color: "bg-red-500", value: profile.technical?.hasInternship ? "Yes" : "No" },
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-2 text-sm">
+                  <span className={cn("w-2.5 h-2.5 rounded-full flex-shrink-0", item.color)} />
+                  <span className="text-gray-600">{item.label}:</span>
+                  <span className="text-gray-900 font-medium">{item.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Key Factor Impact */}
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[hsl(240,10%,3.9%)]">
+            <Target className="w-5 h-5 text-emerald-500" />
+            Key Factor Impact
+          </h3>
+          <div className="space-y-2">
+            {(() => {
+              const factors = [
+                { 
+                  name: "CGPA", 
+                  score: (profile.academic?.cgpa ?? 0), 
+                  target: 7.5, 
+                  max: 10,
+                  impact: (profile.academic?.cgpa ?? 0) >= 7.5 ? "positive" : (profile.academic?.cgpa ?? 0) >= 6 ? "neutral" : "negative"
+                },
+                { 
+                  name: "DSA Level", 
+                  score: profile.technical?.dsaLevel === "Advanced" ? 10 : profile.technical?.dsaLevel === "Intermediate" ? 7 : profile.technical?.dsaLevel === "Basic" ? 4 : 1, 
+                  target: 7, 
+                  max: 10,
+                  impact: profile.technical?.dsaLevel === "Advanced" || profile.technical?.dsaLevel === "Intermediate" ? "positive" : "negative"
+                },
+                { 
+                  name: "Projects", 
+                  score: Math.min(10, (profile.technical?.projectsCount ?? 0) * 2.5), 
+                  target: 7.5, 
+                  max: 10,
+                  impact: (profile.technical?.projectsCount ?? 0) >= 3 ? "positive" : (profile.technical?.projectsCount ?? 0) >= 2 ? "neutral" : "negative"
+                },
+                { 
+                  name: "Internship", 
+                  score: profile.technical?.hasInternship ? 10 : 0, 
+                  target: 10, 
+                  max: 10,
+                  impact: profile.technical?.hasInternship ? "positive" : "negative"
+                },
+                { 
+                  name: "Tech Skills", 
+                  score: Math.min(10, (profile.technical?.technicalSkills?.length ?? 0) * 2), 
+                  target: 6, 
+                  max: 10,
+                  impact: (profile.technical?.technicalSkills?.length ?? 0) >= 4 ? "positive" : (profile.technical?.technicalSkills?.length ?? 0) >= 2 ? "neutral" : "negative"
+                },
+              ];
+              
+              return factors.map((factor, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <div className="w-20 text-xs text-[hsl(240,3.8%,46.1%)] flex-shrink-0">{factor.name}</div>
+                  <div className="flex-1 relative h-6 bg-gray-100 rounded-full overflow-hidden">
+                    {/* Target line */}
+                    <div 
+                      className="absolute top-0 bottom-0 w-0.5 bg-gray-400 z-10"
+                      style={{ left: `${(factor.target / factor.max) * 100}%` }}
+                    />
+                    {/* Score bar */}
+                    <div 
+                      className={cn(
+                        "h-full rounded-full transition-all duration-500",
+                        factor.impact === "positive" && "bg-gradient-to-r from-emerald-400 to-emerald-500",
+                        factor.impact === "neutral" && "bg-gradient-to-r from-amber-400 to-amber-500",
+                        factor.impact === "negative" && "bg-gradient-to-r from-red-400 to-red-500"
+                      )}
+                      style={{ width: `${(factor.score / factor.max) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              ));
+            })()}
+          </div>
+          <div className="flex flex-wrap items-center gap-3 mt-4 pt-4 border-t border-gray-100 text-xs text-[hsl(240,3.8%,46.1%)]">
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Better</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500" /> Neutral</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500" /> Needs Work</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-0.5 bg-gray-400" /> Target</span>
           </div>
         </div>
       </div>
