@@ -19,6 +19,7 @@ import type {
   CandidateProfile,
   PlacementPrediction,
   ResumeParseResult,
+  IssueItem,
 } from "@/lib/types/placement";
 import { cn } from "@/lib/utils/cn";
 
@@ -47,13 +48,37 @@ export function PlacementDashboard({
   const [prediction, setPrediction] = useState<PlacementPrediction | null>(
     null,
   );
+  const [issues, setIssues] = useState<IssueItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   /**
    * Handle form submission and run prediction.
    */
-  const handleAnalyze = useCallback(() => {
+  const handleAnalyze = useCallback(async () => {
+    setIsLoading(true);
+    
+    try {
+      // Check relevance of skills and certifications with Gemini
+      const relevanceResponse = await fetch("/api/check-relevance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          skills: profile.technical.technicalSkills,
+          certifications: profile.technical.certifications,
+        }),
+      });
+      
+      const relevanceData = await relevanceResponse.json();
+      setIssues(relevanceData.issues || []);
+    } catch (error) {
+      console.error("Error checking relevance:", error);
+      setIssues([]);
+    }
+    
+    // Run ML prediction
     const result = predictPlacement(profile);
     setPrediction(result);
+    setIsLoading(false);
     setView("results");
   }, [profile]);
 
@@ -64,6 +89,7 @@ export function PlacementDashboard({
     setView("input");
     setProfile(createEmptyProfile());
     setPrediction(null);
+    setIssues([]);
   }, []);
 
   return (
@@ -110,7 +136,7 @@ export function PlacementDashboard({
       </header>
 
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14 pt-22 pb-10 flex-1">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14 pt-22 md:pt-24 pb-10 flex-1">
         {view === "input" ? (
           <div className="space-y-8">
             {/* Resume Parse Success Banner (when coming from landing page) */}
@@ -153,6 +179,7 @@ export function PlacementDashboard({
               profile={profile}
               onProfileChange={setProfile}
               onSubmit={handleAnalyze}
+              isLoading={isLoading}
             />
           </div>
         ) : (
@@ -161,6 +188,7 @@ export function PlacementDashboard({
               prediction={prediction}
               profile={profile}
               onReset={handleReset}
+              issues={issues}
             />
           )
         )}

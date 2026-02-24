@@ -1,73 +1,122 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { 
   AlertTriangle, 
   CheckCircle, 
   XCircle, 
-  TrendingUp, 
-  Target,
-  Lightbulb,
   AlertCircle,
-  ArrowRight
+  ArrowRight,
+  AlertOctagon,
+  ChevronDown,
+  Loader2,
+  Bot
 } from "lucide-react";
-import {
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  Radar,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-  PieChart,
-  Pie,
-  Legend,
-} from "recharts";
 import { cn } from "@/lib/utils/cn";
 import type { 
   CandidateProfile, 
   PlacementPrediction,
-  FeatureContribution,
+  IssueItem,
 } from "@/lib/types/placement";
+
+interface AISuggestion {
+  title: string;
+  description: string;
+  priority: "high" | "medium" | "low";
+}
 
 interface PredictionResultsProps {
   prediction: PlacementPrediction;
   profile: CandidateProfile;
   onReset: () => void;
+  issues?: IssueItem[];
 }
 
 // Chart colors - Vibrant shadcn style
 const COLORS = {
-  blue: "#2563eb",
   green: "#16a34a",
   yellow: "#ca8a04",
   red: "#dc2626",
-  purple: "#9333ea",
-  pink: "#db2777",
-  cyan: "#0891b2",
-  orange: "#ea580c",
-};
-
-const CATEGORY_COLORS: Record<string, string> = {
-  "Academic": COLORS.blue,
-  "Technical": COLORS.purple,
-  "Experience": COLORS.orange,
-  "Soft Skills": COLORS.cyan,
 };
 
 /**
- * Prediction Results Display with Charts and Analysis.
+ * Prediction Results Display with Analysis.
  */
 export function PredictionResults({ 
   prediction, 
   profile, 
-  onReset 
+  onReset,
+  issues = [],
 }: PredictionResultsProps) {
+  const [currentSuggestionIndex, setCurrentSuggestionIndex] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([]);
+  const [isLoadingAI, setIsLoadingAI] = useState(true);
+  const [expandedSuggestions, setExpandedSuggestions] = useState<Set<number>>(new Set());
+  const [expandedSections, setExpandedSections] = useState<{
+    issues: boolean;
+    strengths: boolean;
+    weaknesses: boolean;
+  }>({ issues: false, strengths: false, weaknesses: false });
+
+  const toggleSection = (section: 'issues' | 'strengths' | 'weaknesses') => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
+
+  const toggleSuggestion = (index: number) => {
+    setExpandedSuggestions(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
+
+  // Fetch AI suggestions
+  useEffect(() => {
+    const fetchAISuggestions = async () => {
+      try {
+        setIsLoadingAI(true);
+        const response = await fetch('/api/ai-suggestions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ profile, prediction }),
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setAiSuggestions(data.suggestions || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch AI suggestions:', error);
+      } finally {
+        setIsLoadingAI(false);
+      }
+    };
+
+    fetchAISuggestions();
+  }, [profile, prediction]);
+  
+  // Cycle through suggestions every 5 seconds with animation
+  useEffect(() => {
+    if (prediction.improvementSuggestions.length <= 1) return;
+    
+    const interval = setInterval(() => {
+      setIsAnimating(true);
+      setTimeout(() => {
+        setCurrentSuggestionIndex(prev => 
+          (prev + 1) % prediction.improvementSuggestions.length
+        );
+        setIsAnimating(false);
+      }, 300);
+    }, 5000);
+    
+    return () => clearInterval(interval);
+  }, [prediction.improvementSuggestions.length]);
+
   const probabilityColor = 
     prediction.probability >= 70 ? COLORS.green :
     prediction.probability >= 40 ? COLORS.yellow : COLORS.red;
@@ -76,11 +125,6 @@ export function PredictionResults({
     prediction.riskCategory === "Low" ? <CheckCircle className="w-5 h-5 text-green-500" /> :
     prediction.riskCategory === "Medium" ? <AlertTriangle className="w-5 h-5 text-yellow-500" /> :
     <XCircle className="w-5 h-5 text-red-500" />;
-
-  // Prepare data for charts
-  const categoryData = getCategoryData(prediction.featureContributions);
-  const radarData = getRadarData(prediction.featureContributions);
-  const contributionData = getTopContributions(prediction.featureContributions);
 
   return (
     <div className="space-y-8">
@@ -140,9 +184,14 @@ export function PredictionResults({
                 </span>
               </div>
 
-              <p className="text-[hsl(240,3.8%,46.1%)] max-w-lg">
+              <p 
+                className={cn(
+                  "text-[hsl(240,3.8%,46.1%)] max-w-lg transition-all duration-300",
+                  isAnimating ? "opacity-0 translate-y-2" : "opacity-100 translate-y-0"
+                )}
+              >
                 {prediction.improvementSuggestions.length > 0 
-                  ? prediction.improvementSuggestions[0] 
+                  ? prediction.improvementSuggestions[currentSuggestionIndex] 
                   : "Analyze your profile to identify areas for improvement."}
               </p>
             </div>
@@ -162,125 +211,90 @@ export function PredictionResults({
         </div>
       </div>
 
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Category Breakdown Pie Chart */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[hsl(240,10%,3.9%)]">
-            <Target className="w-5 h-5" />
-            Score by Category
+      {/* Issues, Strengths & Weaknesses */}
+      <div className="space-y-6">
+        {/* Issues - Irrelevant Skills/Certifications */}
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <button
+          type="button"
+          onClick={() => toggleSection('issues')}
+          className="w-full p-6 flex items-center justify-between hover:bg-gray-50 transition-colors"
+        >
+          <h3 className="text-lg font-semibold flex items-center gap-2 text-orange-600">
+            <AlertOctagon className="w-5 h-5" />
+            Issues ({issues.length})
           </h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={categoryData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                  label={({ name, value }) => `${name}: ${value}%`}
-                  labelLine={false}
-                >
-                  {categoryData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  formatter={(value) => [`${value}%`, "Score"]}
-                  contentStyle={{
-                    backgroundColor: "var(--color-card)",
-                    border: "1px solid var(--color-border)",
-                    borderRadius: "8px",
-                  }}
-                />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+          <ChevronDown className={cn(
+            "w-5 h-5 text-gray-500 transition-transform duration-200",
+            expandedSections.issues && "rotate-180"
+          )} />
+        </button>
+        <div className={cn(
+          "overflow-hidden transition-all duration-300",
+          expandedSections.issues ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
+        )}>
+          <div className="px-6 pb-6">
+        {issues.length > 0 ? (
+          <>
+            <p className="text-sm text-[hsl(240,3.8%,46.1%)] mb-4">
+              The following skills or certifications may not be relevant for a Software Developer role:
+            </p>
+            <ul className="space-y-3">
+              {issues.map((issue, index) => (
+                <li key={index} className="p-3 bg-orange-50 rounded-lg border border-orange-100">
+                  <div className="flex items-start gap-2">
+                    <XCircle className="w-4 h-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <span className="font-medium text-[hsl(240,10%,3.9%)]">
+                        {issue.name}
+                      </span>
+                      <span className={cn(
+                        "ml-2 text-xs px-2 py-0.5 rounded-full",
+                        issue.type === "skill" ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"
+                      )}>
+                        {issue.type === "skill" ? "Skill" : "Certification"}
+                      </span>
+                      <p className="text-sm text-[hsl(240,3.8%,46.1%)] mt-1">
+                        {issue.reason}
+                      </p>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <p className="text-[hsl(240,3.8%,46.1%)] text-center py-4">
+            Great! All your skills and certifications are relevant for a Software Developer role.
+          </p>
+        )}
           </div>
         </div>
-
-        {/* Skills Radar Chart */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[hsl(240,10%,3.9%)]">
-            <TrendingUp className="w-5 h-5" />
-            Skills Assessment
-          </h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <RadarChart data={radarData}>
-                <PolarGrid stroke="var(--color-border)" />
-                <PolarAngleAxis 
-                  dataKey="skill" 
-                  tick={{ fill: "var(--color-muted)", fontSize: 11 }}
-                />
-                <PolarRadiusAxis 
-                  angle={30} 
-                  domain={[0, 100]} 
-                  tick={{ fill: "var(--color-muted)", fontSize: 10 }}
-                />
-                <Radar
-                  name="Your Score"
-                  dataKey="score"
-                  stroke={COLORS.blue}
-                  fill={COLORS.blue}
-                  fillOpacity={0.5}
-                />
-              </RadarChart>
-            </ResponsiveContainer>
-          </div>
         </div>
 
-        {/* Feature Contributions Bar Chart */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 lg:col-span-2">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[hsl(240,10%,3.9%)]">
-            <TrendingUp className="w-5 h-5" />
-            Feature Contributions
-          </h3>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={contributionData} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                <XAxis 
-                  type="number" 
-                  domain={[0, 100]}
-                  tick={{ fill: "var(--color-muted)", fontSize: 12 }}
-                />
-                <YAxis 
-                  type="category" 
-                  dataKey="feature" 
-                  width={120}
-                  tick={{ fill: "var(--color-muted)", fontSize: 12 }}
-                />
-                <Tooltip 
-                  formatter={(value) => [`${Number(value).toFixed(1)}%`, "Contribution"]}
-                  contentStyle={{
-                    backgroundColor: "var(--color-card)",
-                    border: "1px solid var(--color-border)",
-                    borderRadius: "8px",
-                  }}
-                />
-                <Bar dataKey="score" radius={[0, 4, 4, 0]}>
-                  {contributionData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
-
-      {/* Strengths & Weaknesses */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Strengths */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-emerald-600">
-            <CheckCircle className="w-5 h-5" />
-            Your Strengths ({prediction.strengths.length})
-          </h3>
+        {/* Strengths & Areas to Improve */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          {/* Strengths */}
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <button
+            type="button"
+            onClick={() => toggleSection('strengths')}
+            className="w-full p-6 flex items-center justify-between hover:bg-gray-50 transition-colors"
+          >
+            <h3 className="text-lg font-semibold flex items-center gap-2 text-emerald-600">
+              <CheckCircle className="w-5 h-5" />
+              Your Strengths ({prediction.strengths.length})
+            </h3>
+            <ChevronDown className={cn(
+              "w-5 h-5 text-gray-500 transition-transform duration-200",
+              expandedSections.strengths && "rotate-180"
+            )} />
+          </button>
+          <div className={cn(
+            "overflow-hidden transition-all duration-300",
+            expandedSections.strengths ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
+          )}>
+            <div className="px-6 pb-6">
           {prediction.strengths.length > 0 ? (
             <ul className="space-y-3">
               {prediction.strengths.map((strength, index) => (
@@ -310,14 +324,31 @@ export function PredictionResults({
               No significant strengths identified. Focus on building your profile.
             </p>
           )}
-        </div>
+            </div>
+          </div>
+          </div>
 
-        {/* Weaknesses */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-red-600">
-            <AlertTriangle className="w-5 h-5" />
-            Areas to Improve ({prediction.weaknesses.length})
-          </h3>
+          {/* Areas to Improve */}
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <button
+            type="button"
+            onClick={() => toggleSection('weaknesses')}
+            className="w-full p-6 flex items-center justify-between hover:bg-gray-50 transition-colors"
+          >
+            <h3 className="text-lg font-semibold flex items-center gap-2 text-red-600">
+              <AlertTriangle className="w-5 h-5" />
+              Areas to Improve ({prediction.weaknesses.length})
+            </h3>
+            <ChevronDown className={cn(
+              "w-5 h-5 text-gray-500 transition-transform duration-200",
+              expandedSections.weaknesses && "rotate-180"
+            )} />
+          </button>
+          <div className={cn(
+            "overflow-hidden transition-all duration-300",
+            expandedSections.weaknesses ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
+          )}>
+            <div className="px-6 pb-6">
           {prediction.weaknesses.length > 0 ? (
             <ul className="space-y-3">
               {prediction.weaknesses.map((weakness, index) => (
@@ -352,36 +383,78 @@ export function PredictionResults({
               Great! No significant weaknesses identified.
             </p>
           )}
+            </div>
+          </div>
+          </div>
         </div>
       </div>
 
-      {/* Improvement Suggestions */}
-      {prediction.weaknesses.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[hsl(240,10%,3.9%)]">
-            <Lightbulb className="w-5 h-5 text-amber-500" />
-            Personalized Suggestions
-          </h3>
+      {/* AI-Powered Suggestions */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[hsl(240,10%,3.9%)]">
+          <Bot className="w-5 h-5 text-purple-600" />
+          Personalized Suggestions
+        </h3>
+        {isLoadingAI ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-purple-500 mr-2" />
+            <span className="text-[hsl(240,3.8%,46.1%)]">Generating personalized suggestions...</span>
+          </div>
+        ) : aiSuggestions.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {prediction.weaknesses
-              .filter(w => w.priority === "Critical" || w.priority === "High")
-              .slice(0, 4)
-              .map((weakness, index) => (
+            {aiSuggestions.map((suggestion, index) => {
+              const isExpanded = expandedSuggestions.has(index);
+              const shouldTruncate = suggestion.description.length > 80;
+              const displayText = isExpanded || !shouldTruncate 
+                ? suggestion.description 
+                : suggestion.description.slice(0, 80);
+              
+              return (
                 <div 
                   key={index}
-                  className="p-4 bg-amber-50 rounded-lg border border-amber-200"
+                  className={cn(
+                    "p-4 rounded-lg border",
+                    suggestion.priority === "high" && "bg-purple-50 border-purple-200",
+                    suggestion.priority === "medium" && "bg-blue-50 border-blue-200",
+                    suggestion.priority === "low" && "bg-gray-50 border-gray-200"
+                  )}
                 >
-                  <h4 className="font-medium text-[hsl(240,10%,3.9%)] mb-2">
-                    {weakness.area}
-                  </h4>
+                  <div className="flex items-start justify-between mb-2">
+                    <h4 className="font-medium text-[hsl(240,10%,3.9%)]">
+                      {suggestion.title}
+                    </h4>
+                    <span className={cn(
+                      "text-xs px-2 py-0.5 rounded-full flex-shrink-0 ml-2",
+                      suggestion.priority === "high" && "bg-purple-200 text-purple-800",
+                      suggestion.priority === "medium" && "bg-blue-200 text-blue-800",
+                      suggestion.priority === "low" && "bg-gray-200 text-gray-700"
+                    )}>
+                      {suggestion.priority}
+                    </span>
+                  </div>
                   <p className="text-sm text-[hsl(240,3.8%,46.1%)]">
-                    {weakness.suggestion}
+                    {displayText}
+                    {shouldTruncate && !isExpanded && "... "}
+                    {shouldTruncate && (
+                      <button
+                        type="button"
+                        onClick={() => toggleSuggestion(index)}
+                        className="text-purple-600 hover:text-purple-800 font-medium ml-1"
+                      >
+                        {isExpanded ? "show less" : "read more"}
+                      </button>
+                    )}
                   </p>
                 </div>
-              ))}
+              );
+            })}
           </div>
-        </div>
-      )}
+        ) : (
+          <p className="text-[hsl(240,3.8%,46.1%)] text-center py-4">
+            No suggestions available at this time.
+          </p>
+        )}
+      </div>
 
       {/* Action Button */}
       <div className="flex justify-center">
@@ -400,93 +473,4 @@ export function PredictionResults({
       </div>
     </div>
   );
-}
-
-/**
- * Get category breakdown data for pie chart.
- * Derives categories from feature names.
- */
-function getCategoryData(contributions: FeatureContribution[]) {
-  const categoryMap: Record<string, string> = {
-    "CGPA": "Academic",
-    "Backlogs": "Academic",
-    "10th Percentage": "Academic",
-    "12th Percentage": "Academic",
-    "Branch Relevance": "Academic",
-    "Programming Languages": "Technical",
-    "DSA Level": "Technical",
-    "Projects Count": "Technical",
-    "Has Internship": "Technical",
-    "Certifications": "Technical",
-    "Hackathons": "Experience",
-    "Open Source": "Experience",
-    "Resume Score": "Experience",
-    "Aptitude Score": "Soft Skills",
-    "Communication": "Soft Skills",
-    "Mock Interview": "Soft Skills",
-    "English Fluency": "Soft Skills",
-  };
-
-  const categories: Record<string, number> = {};
-  const counts: Record<string, number> = {};
-
-  for (const c of contributions) {
-    const cat = categoryMap[c.feature] || "Other";
-    if (!categories[cat]) {
-      categories[cat] = 0;
-      counts[cat] = 0;
-    }
-    // Use importance as the basis for category scores
-    categories[cat] += c.importance;
-    counts[cat] += 1;
-  }
-
-  return Object.entries(categories).map(([name, value]) => ({
-    name,
-    value: Math.round(value / (counts[name] || 1)),
-    color: CATEGORY_COLORS[name] || COLORS.blue,
-  }));
-}
-
-/**
- * Get radar chart data.
- */
-function getRadarData(contributions: FeatureContribution[]) {
-  return contributions.slice(0, 8).map((c) => ({
-    skill: c.feature,
-    score: c.importance,
-  }));
-}
-
-/**
- * Get top contributions for bar chart.
- */
-function getTopContributions(contributions: FeatureContribution[]) {
-  const categoryMap: Record<string, string> = {
-    "CGPA": "Academic",
-    "Backlogs": "Academic",
-    "10th Percentage": "Academic",
-    "12th Percentage": "Academic",
-    "Branch Relevance": "Academic",
-    "Programming Languages": "Technical",
-    "DSA Level": "Technical",
-    "Projects Count": "Technical",
-    "Has Internship": "Technical",
-    "Certifications": "Technical",
-    "Hackathons": "Experience",
-    "Open Source": "Experience",
-    "Resume Score": "Experience",
-    "Aptitude Score": "Soft Skills",
-    "Communication": "Soft Skills",
-    "Mock Interview": "Soft Skills",
-    "English Fluency": "Soft Skills",
-  };
-
-  return contributions
-    .map((c) => ({
-      feature: c.feature,
-      score: c.importance,
-      color: CATEGORY_COLORS[categoryMap[c.feature] || "Other"] || COLORS.blue,
-    }))
-    .sort((a, b) => b.score - a.score);
 }

@@ -88,7 +88,7 @@ export function LandingPage({ onSelectOption, onResumeUploaded }: LandingPagePro
             ...baseProfile.technical,
             technicalSkills: tech.technicalSkills?.length > 0 ? tech.technicalSkills : baseProfile.technical.technicalSkills,
             dsaLevel: tech.dsaLevel && tech.dsaLevel !== "None" ? tech.dsaLevel : baseProfile.technical.dsaLevel,
-            projectsCount: tech.projectsCount > 0 ? tech.projectsCount : baseProfile.technical.projectsCount,
+            projectsCount: (tech.projectsCount ?? 0) > 0 ? tech.projectsCount : baseProfile.technical.projectsCount,
             hasInternship: tech.hasInternship || baseProfile.technical.hasInternship,
             certifications: tech.certifications?.length > 0 ? tech.certifications : baseProfile.technical.certifications,
           };
@@ -99,7 +99,7 @@ export function LandingPage({ onSelectOption, onResumeUploaded }: LandingPagePro
           const exp = result.extractedData.experience;
           newProfile.experience = {
             ...baseProfile.experience,
-            hackathonsCount: exp.hackathonsCount > 0 ? exp.hackathonsCount : baseProfile.experience.hackathonsCount,
+            hackathonsCount: (exp.hackathonsCount ?? 0) > 0 ? exp.hackathonsCount : baseProfile.experience.hackathonsCount,
             hasOpenSourceContributions: exp.hasOpenSourceContributions || baseProfile.experience.hasOpenSourceContributions,
             resumeATSScore: exp.resumeATSScore > 0 ? exp.resumeATSScore : baseProfile.experience.resumeATSScore,
           };

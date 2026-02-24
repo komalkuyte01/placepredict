@@ -34,10 +34,10 @@ export type RiskCategory = "Low" | "Medium" | "High";
  * Academic information of a candidate.
  */
 export interface AcademicInfo {
-  cgpa: number; // 0-10 scale
-  backlogs: number;
-  tenthPercentage: number; // 0-100
-  twelfthPercentage: number; // 0-100
+  cgpa: number | undefined; // 0-10 scale
+  backlogs: number | undefined;
+  tenthPercentage: number | undefined; // 0-100
+  twelfthPercentage: number | undefined; // 0-100
   degreeBranch: DegreeBranch | string;
 }
 
@@ -47,7 +47,7 @@ export interface AcademicInfo {
 export interface TechnicalSkills {
   technicalSkills: string[];
   dsaLevel: DSALevel;
-  projectsCount: number;
+  projectsCount: number | undefined;
   hasInternship: boolean;
   certifications: string[];
 }
@@ -56,7 +56,7 @@ export interface TechnicalSkills {
  * Experience and exposure of a candidate.
  */
 export interface ExperienceInfo {
-  hackathonsCount: number;
+  hackathonsCount: number | undefined;
   hasOpenSourceContributions: boolean;
   resumeATSScore: number; // 0-100 ATS compatibility score
 }
@@ -99,6 +99,15 @@ export interface StrengthArea {
   area: string;
   value: string;
   impact: "High" | "Medium" | "Low";
+}
+
+/**
+ * Issue with irrelevant skill or certification.
+ */
+export interface IssueItem {
+  type: "skill" | "certification";
+  name: string;
+  reason: string;
 }
 
 /**

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { GraduationCap, Code, Briefcase, MessageSquare, Plus, X } from "lucide-react";
+import { GraduationCap, Code, Briefcase, MessageSquare, Plus, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 import {
   Select,
@@ -20,12 +20,13 @@ interface CandidateFormProps {
   profile: CandidateProfile;
   onProfileChange: (profile: CandidateProfile) => void;
   onSubmit: () => void;
+  isLoading?: boolean;
 }
 
 /**
  * Form for entering candidate details for ML prediction.
  */
-export function CandidateForm({ profile, onProfileChange, onSubmit }: CandidateFormProps) {
+export function CandidateForm({ profile, onProfileChange, onSubmit, isLoading = false }: CandidateFormProps) {
   const [newSkill, setNewSkill] = useState("");
   const [newCert, setNewCert] = useState("");
 
@@ -105,10 +106,10 @@ export function CandidateForm({ profile, onProfileChange, onSubmit }: CandidateF
               min="0"
               max="10"
               step="0.1"
-              value={profile.academic.cgpa || ""}
-              onChange={(e) => updateAcademic("cgpa", parseFloat(e.target.value) || 0)}
+              value={profile.academic.cgpa ?? ""}
+              onChange={(e) => updateAcademic("cgpa", e.target.value === "" ? undefined : parseFloat(e.target.value))}
               className="w-full"
-              placeholder="e.g., 7.5"
+              placeholder="Enter CGPA"
             />
           </FormField>
 
@@ -117,10 +118,10 @@ export function CandidateForm({ profile, onProfileChange, onSubmit }: CandidateF
               type="number"
               min="0"
               max="20"
-              value={profile.academic.backlogs || ""}
-              onChange={(e) => updateAcademic("backlogs", parseInt(e.target.value) || 0)}
+              value={profile.academic.backlogs ?? ""}
+              onChange={(e) => updateAcademic("backlogs", e.target.value === "" ? undefined : parseInt(e.target.value))}
               className="w-full"
-              placeholder="e.g., 0"
+              placeholder="Enter backlogs count"
             />
           </FormField>
 
@@ -130,10 +131,10 @@ export function CandidateForm({ profile, onProfileChange, onSubmit }: CandidateF
               min="0"
               max="100"
               step="0.1"
-              value={profile.academic.tenthPercentage || ""}
-              onChange={(e) => updateAcademic("tenthPercentage", parseFloat(e.target.value) || 0)}
+              value={profile.academic.tenthPercentage ?? ""}
+              onChange={(e) => updateAcademic("tenthPercentage", e.target.value === "" ? undefined : parseFloat(e.target.value))}
               className="w-full"
-              placeholder="e.g., 85"
+              placeholder="Enter 10th percentage"
             />
           </FormField>
 
@@ -143,10 +144,10 @@ export function CandidateForm({ profile, onProfileChange, onSubmit }: CandidateF
               min="0"
               max="100"
               step="0.1"
-              value={profile.academic.twelfthPercentage || ""}
-              onChange={(e) => updateAcademic("twelfthPercentage", parseFloat(e.target.value) || 0)}
+              value={profile.academic.twelfthPercentage ?? ""}
+              onChange={(e) => updateAcademic("twelfthPercentage", e.target.value === "" ? undefined : parseFloat(e.target.value))}
               className="w-full"
-              placeholder="e.g., 80"
+              placeholder="Enter 12th percentage"
             />
           </FormField>
 
@@ -236,10 +237,10 @@ export function CandidateForm({ profile, onProfileChange, onSubmit }: CandidateF
               type="number"
               min="0"
               max="20"
-              value={profile.technical.projectsCount || ""}
-              onChange={(e) => updateTechnical("projectsCount", parseInt(e.target.value) || 0)}
+              value={profile.technical.projectsCount ?? ""}
+              onChange={(e) => updateTechnical("projectsCount", e.target.value === "" ? undefined : parseInt(e.target.value))}
               className="w-full"
-              placeholder="e.g., 4"
+              placeholder="Enter projects count"
             />
           </FormField>
 
@@ -306,10 +307,10 @@ export function CandidateForm({ profile, onProfileChange, onSubmit }: CandidateF
               type="number"
               min="0"
               max="20"
-              value={profile.experience.hackathonsCount || ""}
-              onChange={(e) => updateExperience("hackathonsCount", parseInt(e.target.value) || 0)}
+              value={profile.experience.hackathonsCount ?? ""}
+              onChange={(e) => updateExperience("hackathonsCount", e.target.value === "" ? undefined : parseInt(e.target.value))}
               className="w-full"
-              placeholder="e.g., 2"
+              placeholder="Enter hackathons count"
             />
           </FormField>
 
@@ -399,18 +400,28 @@ export function CandidateForm({ profile, onProfileChange, onSubmit }: CandidateF
       </FormSection>
 
       {/* Submit Button */}
-      <div className="flex justify-center pt-4">
+      <div className="flex justify-center">
         <button
           onClick={onSubmit}
+          disabled={isLoading}
           className={cn(
             "px-8 py-3 rounded-lg font-semibold",
             "bg-[hsl(240,5.9%,10%)]",
             "text-white",
             "hover:bg-[hsl(240,5.9%,20%)]",
-            "transition-colors"
+            "transition-colors",
+            "disabled:opacity-70 disabled:cursor-not-allowed",
+            "flex items-center gap-2"
           )}
         >
-          🤖 Run ML Prediction
+          {isLoading ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Analyzing...
+            </>
+          ) : (
+            <>🤖 Run ML Prediction</>
+          )}
         </button>
       </div>
     </div>
