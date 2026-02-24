@@ -271,7 +271,7 @@ export function PredictionResults({
                 <span className="text-sm font-bold text-gray-700">{prediction.probability}%</span>
               </div>
             </div>
-            <div className="flex-1 space-y-2">
+            <div className="space-y-2">
               {[
                 { label: "Academics", color: "bg-violet-500", value: profile.academic?.cgpa?.toFixed(1) ?? "0" },
                 { label: "Technical", color: "bg-cyan-500", value: `${profile.technical?.technicalSkills?.length ?? 0} skills` },

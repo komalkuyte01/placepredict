@@ -37,7 +37,6 @@ export default function HomePage() {
 
   return (
     <PlacementDashboard 
-      initialMode={view} 
       onBack={handleBack}
       initialProfile={parsedProfile}
       initialParseResult={parseResult}

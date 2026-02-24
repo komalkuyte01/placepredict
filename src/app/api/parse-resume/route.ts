@@ -59,7 +59,7 @@ Looking for these specific data fields from the resume:
 3. **Experience & ATS Score:**
    - Hackathon participation count
    - Open source contributions (yes/no)
-   - Resume ATS Score (0-100)
+   - Resume ATS Score (0-100) - REQUIRED: You MUST calculate and return this score based on the guidelines below
 
 Return a JSON object with this EXACT structure (use null for fields not found):
 
@@ -81,7 +81,7 @@ Return a JSON object with this EXACT structure (use null for fields not found):
   "experience": {
     "hackathonsCount": <number of hackathons participated>,
     "hasOpenSourceContributions": <true if open source contributions mentioned>,
-    "resumeATSScore": <ATS compatibility score 0-100>
+    "resumeATSScore": <REQUIRED: ATS compatibility score 0-100, NEVER return 0 - calculate based on guidelines below>
   }
 }
 
@@ -91,17 +91,18 @@ Return a JSON object with this EXACT structure (use null for fields not found):
 - "Basic": Basic programming, arrays, strings, loops, simple sorting
 - "None": No DSA/algorithm mentions
 
-## ATS Score Calculation Guidelines (0-100):
-Calculate based on these factors:
-- Clear formatting & structure: +15 points
-- Relevant keywords for tech roles: +20 points
-- Quantified achievements: +15 points
-- Action verbs usage: +10 points
-- No spelling/grammar errors: +10 points
-- Proper sections (Education, Experience, Skills, Projects): +15 points
-- Contact information present: +5 points
-- Appropriate length (1-2 pages): +5 points
-- Technical skills clearly listed: +5 points
+## ATS Score (0-100):
+Calculate the resumeATSScore as a realistic ATS (Applicant Tracking System) compatibility score, similar to what real ATS software like Workday, Taleo, Greenhouse, Lever, iCIMS, and BrassRing would assign. 
+
+Consider how actual ATS systems parse and score resumes:
+- Keyword matching against job descriptions
+- Parsability of the document format
+- Section recognition and structure
+- Contact information extraction success
+- Skills and experience relevance
+- Readability by automated systems
+
+Be realistic - most resumes score 40-70 on real ATS systems. Only exceptionally well-optimized resumes score above 80.
 
 IMPORTANT:
 - Return ONLY valid JSON, no markdown code blocks, no explanation
@@ -110,6 +111,7 @@ IMPORTANT:
 - Count ALL projects mentioned (personal, academic, professional)
 - Look for CGPA, GPA, percentage marks in education section
 - If field not found, use null for numbers and [] for arrays
+- resumeATSScore should reflect real-world ATS scoring
 
 Resume content:
 `;
@@ -136,12 +138,10 @@ async function extractTextFromPDF(buffer: Buffer): Promise<string> {
 
 /**
  * Available Gemini model names to try (in order of preference)
+ * Each model has separate quota limits
  */
 const GEMINI_MODELS = [
   "gemini-2.5-flash",
-  "gemini-2.0-flash",
-  "gemini-1.5-flash",
-  "gemini-pro",
 ];
 
 /**
