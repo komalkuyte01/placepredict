@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import {
   Upload,
   FileText,
@@ -17,14 +17,110 @@ import {
   Zap,
   Shield,
   Star,
+  Loader2,
 } from "lucide-react";
+import type { CandidateProfile, ResumeParseResult } from "@/lib/types/placement";
+import { createEmptyProfile } from "@/lib/ml/placement-ml-engine";
 
 interface LandingPageProps {
   onSelectOption: (option: "upload" | "manual") => void;
+  onResumeUploaded?: (profile: CandidateProfile, result: ResumeParseResult) => void;
 }
 
-export function LandingPage({ onSelectOption }: LandingPageProps) {
+export function LandingPage({ onSelectOption, onResumeUploaded }: LandingPageProps) {
   const [hoveredCard, setHoveredCard] = useState<"upload" | "manual" | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUploadClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Reset input so same file can be selected again
+    e.target.value = "";
+
+    // Validate file type
+    if (file.type !== "application/pdf") {
+      alert("Please select a PDF file");
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/parse-resume", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result: ResumeParseResult = await response.json();
+
+      if (result.success && result.extractedData) {
+        // Build profile from extracted data
+        const baseProfile = createEmptyProfile();
+        const newProfile: CandidateProfile = { ...baseProfile };
+
+        // Merge academic data
+        if (result.extractedData.academic) {
+          const academic = result.extractedData.academic;
+          newProfile.academic = {
+            ...baseProfile.academic,
+            ...(academic.cgpa && academic.cgpa > 0 ? { cgpa: academic.cgpa } : {}),
+            ...(academic.tenthPercentage && academic.tenthPercentage > 0 ? { tenthPercentage: academic.tenthPercentage } : {}),
+            ...(academic.twelfthPercentage && academic.twelfthPercentage > 0 ? { twelfthPercentage: academic.twelfthPercentage } : {}),
+            ...(academic.degreeBranch ? { degreeBranch: academic.degreeBranch } : {}),
+            ...(academic.backlogs !== undefined ? { backlogs: academic.backlogs } : {}),
+          };
+        }
+
+        // Merge technical data
+        if (result.extractedData.technical) {
+          const tech = result.extractedData.technical;
+          newProfile.technical = {
+            ...baseProfile.technical,
+            technicalSkills: tech.technicalSkills?.length > 0 ? tech.technicalSkills : baseProfile.technical.technicalSkills,
+            dsaLevel: tech.dsaLevel && tech.dsaLevel !== "None" ? tech.dsaLevel : baseProfile.technical.dsaLevel,
+            projectsCount: tech.projectsCount > 0 ? tech.projectsCount : baseProfile.technical.projectsCount,
+            hasInternship: tech.hasInternship || baseProfile.technical.hasInternship,
+            certifications: tech.certifications?.length > 0 ? tech.certifications : baseProfile.technical.certifications,
+          };
+        }
+
+        // Merge experience data
+        if (result.extractedData.experience) {
+          const exp = result.extractedData.experience;
+          newProfile.experience = {
+            ...baseProfile.experience,
+            hackathonsCount: exp.hackathonsCount > 0 ? exp.hackathonsCount : baseProfile.experience.hackathonsCount,
+            hasOpenSourceContributions: exp.hasOpenSourceContributions || baseProfile.experience.hasOpenSourceContributions,
+            resumeATSScore: exp.resumeATSScore > 0 ? exp.resumeATSScore : baseProfile.experience.resumeATSScore,
+          };
+        }
+
+        // Call the callback with parsed data
+        if (onResumeUploaded) {
+          onResumeUploaded(newProfile, result);
+        }
+      } else {
+        // If parsing failed, still navigate but with empty profile
+        if (onResumeUploaded) {
+          onResumeUploaded(createEmptyProfile(), result);
+        }
+      }
+    } catch (error) {
+      console.error("Resume parsing failed:", error);
+      alert("Failed to parse resume. Please try again.");
+    } finally {
+      setIsUploading(false);
+    }
+  }, [onResumeUploaded]);
 
   const features = [
     {
@@ -36,14 +132,14 @@ export function LandingPage({ onSelectOption }: LandingPageProps) {
     },
     {
       icon: Brain,
-      title: "ML Prediction Engine",
-      description: "Ensemble models predict placement probability",
+      title: "ML Engine",
+      description: "Models predict placement probability",
       iconBg: "bg-violet-50",
       iconColor: "text-violet-600",
     },
     {
       icon: Lightbulb,
-      title: "Personalized Insights",
+      title: "Smart Insights",
       description: "Tailored suggestions for your improvements",
       iconBg: "bg-amber-50",
       iconColor: "text-amber-600",
@@ -66,6 +162,30 @@ export function LandingPage({ onSelectOption }: LandingPageProps) {
 
   return (
     <div className="min-h-screen bg-[#FAFBFC]">
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf,application/pdf"
+        onChange={handleFileChange}
+        className="hidden"
+      />
+
+      {/* Loading Overlay */}
+      {isUploading && (
+        <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center">
+          <div className="bg-white rounded-2xl p-8 shadow-2xl flex flex-col items-center gap-4 max-w-sm mx-4">
+            <div className="w-16 h-16 rounded-full bg-[#6e44ff]/10 flex items-center justify-center">
+              <Loader2 className="w-8 h-8 text-[#6e44ff] animate-spin" />
+            </div>
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">Parsing Resume</h3>
+              <p className="text-sm text-gray-500">AI is extracting your details...</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-xl border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14">
@@ -103,7 +223,7 @@ export function LandingPage({ onSelectOption }: LandingPageProps) {
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-24 sm:pt-28 pb-10 sm:pb-14">
+      <section className="pt-22 sm:pt-28 pb-10 sm:pb-14">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14">
           <div className="max-w-3xl mx-auto text-center">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#6e44ff]/10 text-[#6e44ff] text-xs font-medium mb-6 sm:mb-8 border border-[#6e44ff]/20">
@@ -124,8 +244,9 @@ export function LandingPage({ onSelectOption }: LandingPageProps) {
             </p>
             <div className="flex flex-row gap-2 sm:gap-3 justify-center">
               <button
-                onClick={() => onSelectOption("upload")}
-                className="group inline-flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-3 sm:py-3.5 bg-[#6e44ff] text-white rounded-full text-sm sm:text-base font-medium shadow-lg shadow-[#6e44ff]/25 hover:bg-[#5c35e6] hover:shadow-xl hover:shadow-[#6e44ff]/30 transition-all duration-200"
+                onClick={handleUploadClick}
+                disabled={isUploading}
+                className="group inline-flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-3 sm:py-3.5 bg-[#6e44ff] text-white rounded-full text-sm sm:text-base font-medium shadow-lg shadow-[#6e44ff]/25 hover:bg-[#5c35e6] hover:shadow-xl hover:shadow-[#6e44ff]/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Upload className="w-4 h-4" />
                 Upload Resume
@@ -206,7 +327,7 @@ export function LandingPage({ onSelectOption }: LandingPageProps) {
       {/* Objectives Section */}
       <section id="how-it-works" className="bg-gray-50/50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14">
-          <div className="grid md:grid-cols-2 gap-4 sm:gap-6 lg:gap-12 items-stretch">
+          <div className="grid md:grid-cols-2 gap-10 sm:gap-6 lg:gap-12 items-stretch">
             <div className="bg-white rounded-xl sm:rounded-2xl p-5 sm:p-8 border border-gray-100 shadow-xl shadow-gray-100/50 h-full">
               <div className="flex items-center gap-2 mb-3">
                 <Zap className="w-5 h-5 text-[#6e44ff]" />
@@ -268,12 +389,12 @@ export function LandingPage({ onSelectOption }: LandingPageProps) {
             <div
               onMouseEnter={() => setHoveredCard("upload")}
               onMouseLeave={() => setHoveredCard(null)}
-              onClick={() => onSelectOption("upload")}
+              onClick={handleUploadClick}
               className={`relative cursor-pointer rounded-xl sm:rounded-2xl p-5 sm:p-8 border transition-all duration-300 ${
                 hoveredCard === "upload"
                   ? "border-[#6e44ff]/30 bg-[#6e44ff]/5 shadow-xl shadow-[#6e44ff]/10 -translate-y-1"
                   : "border-gray-100 bg-white hover:border-gray-200"
-              }`}
+              } ${isUploading ? "pointer-events-none opacity-50" : ""}`}
             >
               <div className="absolute top-4 right-4">
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#6e44ff]/10 text-[#6e44ff] text-xs font-medium">

@@ -147,7 +147,7 @@ export function CandidateForm({ profile, onProfileChange, onSubmit }: CandidateF
             <select
               value={profile.academic.degreeBranch}
               onChange={(e) => updateAcademic("degreeBranch", e.target.value as DegreeBranch)}
-              className="w-full"
+              className="w-full h-10"
             >
               <option value="Computer Science">Computer Science</option>
               <option value="Information Technology">Information Technology</option>
@@ -175,13 +175,13 @@ export function CandidateForm({ profile, onProfileChange, onSubmit }: CandidateF
                   value={newSkill}
                   onChange={(e) => setNewSkill(e.target.value)}
                   onKeyPress={(e) => e.key === "Enter" && addTechnicalSkill()}
-                  className="flex-1"
+                  className="flex-1 min-w-0"
                   placeholder="e.g., Python, React, AWS, Docker"
                 />
                 <button
                   type="button"
                   onClick={addTechnicalSkill}
-                  className="px-3 py-2 bg-[#6e44ff] text-white rounded-lg hover:bg-[#5c35e6]"
+                  className="flex-shrink-0 px-3 py-2 bg-[#6e44ff] text-white rounded-lg hover:bg-[#5c35e6]"
                 >
                   <Plus className="w-4 h-4" />
                 </button>
@@ -207,12 +207,12 @@ export function CandidateForm({ profile, onProfileChange, onSubmit }: CandidateF
             <select
               value={profile.technical.dsaLevel}
               onChange={(e) => updateTechnical("dsaLevel", e.target.value as DSALevel)}
-              className="w-full"
+              className="w-full h-10"
             >
               <option value="None">None</option>
-              <option value="Basic">Basic (Arrays, Strings, Basic Sorting)</option>
-              <option value="Intermediate">Intermediate (Trees, Graphs, DP basics)</option>
-              <option value="Advanced">Advanced (Advanced DP, Segment Trees)</option>
+              <option value="Basic">Basic (Arrays, Strings, Sorting)</option>
+              <option value="Intermediate">Intermediate (Trees, Graphs, DP)</option>
+              <option value="Advanced">Advanced (DP, Segment Trees)</option>
             </select>
           </FormField>
 
@@ -236,13 +236,13 @@ export function CandidateForm({ profile, onProfileChange, onSubmit }: CandidateF
                   value={newCert}
                   onChange={(e) => setNewCert(e.target.value)}
                   onKeyPress={(e) => e.key === "Enter" && addCertification()}
-                  className="flex-1"
+                  className="flex-1 min-w-0"
                   placeholder="e.g., AWS Certified, Google Cloud"
                 />
                 <button
                   type="button"
                   onClick={addCertification}
-                  className="px-3 py-2 bg-[#6e44ff] text-white rounded-lg hover:bg-[#5c35e6]"
+                  className="flex-shrink-0 px-3 py-2 bg-[#6e44ff] text-white rounded-lg hover:bg-[#5c35e6]"
                 >
                   <Plus className="w-4 h-4" />
                 </button>
