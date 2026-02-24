@@ -19,6 +19,7 @@ import {
   Star,
   Loader2,
 } from "lucide-react";
+import { Footer } from "@/components/shared/footer";
 import type { CandidateProfile, ResumeParseResult } from "@/lib/types/placement";
 import { createEmptyProfile } from "@/lib/ml/placement-ml-engine";
 
@@ -187,7 +188,7 @@ export function LandingPage({ onSelectOption, onResumeUploaded }: LandingPagePro
       )}
 
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-xl border-b border-gray-100">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-xl border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14">
           <div className="flex justify-between items-center h-14 sm:h-16">
             <div className="flex items-center gap-2 sm:gap-3">
@@ -220,7 +221,7 @@ export function LandingPage({ onSelectOption, onResumeUploaded }: LandingPagePro
             </div>
           </div>
         </div>
-      </nav>
+      </header>
 
       {/* Hero Section */}
       <section className="pt-22 sm:pt-28 pb-10 sm:pb-14">
@@ -254,7 +255,7 @@ export function LandingPage({ onSelectOption, onResumeUploaded }: LandingPagePro
               </button>
               <button
                 onClick={() => onSelectOption("manual")}
-                className="group inline-flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-3 sm:py-3.5 bg-white text-gray-700 rounded-full text-sm sm:text-base font-medium border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all duration-200"
+                className="group inline-flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-3 sm:py-3.5 bg-gray-100 text-gray-700 rounded-full text-sm sm:text-base font-medium border border-gray-300 hover:border-gray-400 hover:bg-gray-200 transition-all duration-200"
               >
                 <FileText className="w-4 h-4" />
                 Enter Manually
@@ -303,7 +304,7 @@ export function LandingPage({ onSelectOption, onResumeUploaded }: LandingPagePro
             {features.map((feature, index) => (
               <div
                 key={index}
-                className="group p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-white border border-gray-100 hover:border-gray-200 hover:shadow-lg hover:shadow-gray-100/50 transition-all duration-300 text-center"
+                className="group p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-white border border-gray-200 hover:border-gray-300 hover:shadow-lg hover:shadow-gray-100/50 transition-all duration-300 text-center"
               >
                 <div
                   className={`w-9 h-9 sm:w-11 sm:h-11 rounded-lg sm:rounded-xl ${feature.iconBg} flex items-center justify-center mb-3 sm:mb-4 mx-auto`}
@@ -328,7 +329,7 @@ export function LandingPage({ onSelectOption, onResumeUploaded }: LandingPagePro
       <section id="how-it-works" className="bg-gray-50/50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14">
           <div className="grid md:grid-cols-2 gap-10 sm:gap-6 lg:gap-12 items-stretch">
-            <div className="bg-white rounded-xl sm:rounded-2xl p-5 sm:p-8 border border-gray-100 shadow-xl shadow-gray-100/50 h-full">
+            <div className="bg-white rounded-xl sm:rounded-2xl p-5 sm:p-8 border border-gray-200 shadow-xl shadow-gray-100/50 h-full">
               <div className="flex items-center gap-2 mb-3">
                 <Zap className="w-5 h-5 text-[#6e44ff]" />
                 <h3 className="font-bold text-gray-900">How It Works</h3>
@@ -342,7 +343,7 @@ export function LandingPage({ onSelectOption, onResumeUploaded }: LandingPagePro
                 ))}
               </div>
             </div>
-            <div className="bg-white rounded-xl sm:rounded-2xl p-5 sm:p-8 border border-gray-100 shadow-xl shadow-gray-100/50 h-full">
+            <div className="bg-white rounded-xl sm:rounded-2xl p-5 sm:p-8 border border-gray-200 shadow-xl shadow-gray-100/50 h-full">
               <div className="flex items-center gap-2 mb-4 sm:mb-6">
                 <Shield className="w-5 h-5 text-[#6e44ff]" />
                 <h3 className="font-semibold text-gray-900">What We Analyze</h3>
@@ -393,7 +394,7 @@ export function LandingPage({ onSelectOption, onResumeUploaded }: LandingPagePro
               className={`relative cursor-pointer rounded-xl sm:rounded-2xl p-5 sm:p-8 border transition-all duration-300 ${
                 hoveredCard === "upload"
                   ? "border-[#6e44ff]/30 bg-[#6e44ff]/5 shadow-xl shadow-[#6e44ff]/10 -translate-y-1"
-                  : "border-gray-100 bg-white hover:border-gray-200"
+                  : "border-gray-200 bg-white hover:border-gray-300"
               } ${isUploading ? "pointer-events-none opacity-50" : ""}`}
             >
               <div className="absolute top-4 right-4">
@@ -439,8 +440,8 @@ export function LandingPage({ onSelectOption, onResumeUploaded }: LandingPagePro
               onClick={() => onSelectOption("manual")}
               className={`relative cursor-pointer rounded-xl sm:rounded-2xl p-5 sm:p-8 border transition-all duration-300 ${
                 hoveredCard === "manual"
-                  ? "border-gray-200 bg-gray-50/50 shadow-xl shadow-gray-100/50 -translate-y-1"
-                  : "border-gray-100 bg-white hover:border-gray-200"
+                  ? "border-gray-300 bg-gray-50/50 shadow-xl shadow-gray-100/50 -translate-y-1"
+                  : "border-gray-200 bg-white hover:border-gray-300"
               }`}
             >
               <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-gray-900 flex items-center justify-center mb-4 sm:mb-5 shadow-lg shadow-gray-900/20">
@@ -476,24 +477,7 @@ export function LandingPage({ onSelectOption, onResumeUploaded }: LandingPagePro
       </section>
 
       {/* Footer */}
-      <footer className="py-8 sm:py-10 border-t border-gray-100">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-[#6e44ff] flex items-center justify-center">
-                <GraduationCap className="w-4 h-4 text-white" />
-              </div>
-              <span className="font-semibold text-gray-900">PlacePredict</span>
-            </div>
-            <p className="text-sm text-gray-400 text-center">
-              AI-driven placement predictions for students
-            </p>
-            <div className="text-xs text-gray-400">
-              © {new Date().getFullYear()} PlacePredict
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

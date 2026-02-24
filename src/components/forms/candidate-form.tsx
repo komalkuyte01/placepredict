@@ -3,6 +3,13 @@
 import { useState } from "react";
 import { GraduationCap, Code, Briefcase, MessageSquare, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { 
   CandidateProfile, 
   DegreeBranch, 
@@ -144,19 +151,23 @@ export function CandidateForm({ profile, onProfileChange, onSubmit }: CandidateF
           </FormField>
 
           <FormField label="Degree Branch">
-            <select
+            <Select
               value={profile.academic.degreeBranch}
-              onChange={(e) => updateAcademic("degreeBranch", e.target.value as DegreeBranch)}
-              className="w-full h-10"
+              onValueChange={(value) => updateAcademic("degreeBranch", value as DegreeBranch)}
             >
-              <option value="Computer Science">Computer Science</option>
-              <option value="Information Technology">Information Technology</option>
-              <option value="Electronics">Electronics</option>
-              <option value="Electrical">Electrical</option>
-              <option value="Mechanical">Mechanical</option>
-              <option value="Civil">Civil</option>
-              <option value="Other">Other</option>
-            </select>
+              <SelectTrigger className="w-full h-10">
+                <SelectValue placeholder="Select branch" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Computer Science">Computer Science</SelectItem>
+                <SelectItem value="Information Technology">Information Technology</SelectItem>
+                <SelectItem value="Electronics">Electronics</SelectItem>
+                <SelectItem value="Electrical">Electrical</SelectItem>
+                <SelectItem value="Mechanical">Mechanical</SelectItem>
+                <SelectItem value="Civil">Civil</SelectItem>
+                <SelectItem value="Other">Other</SelectItem>
+              </SelectContent>
+            </Select>
           </FormField>
         </div>
       </FormSection>
@@ -204,16 +215,20 @@ export function CandidateForm({ profile, onProfileChange, onSubmit }: CandidateF
           </FormField>
 
           <FormField label="DSA Level">
-            <select
+            <Select
               value={profile.technical.dsaLevel}
-              onChange={(e) => updateTechnical("dsaLevel", e.target.value as DSALevel)}
-              className="w-full h-10"
+              onValueChange={(value) => updateTechnical("dsaLevel", value as DSALevel)}
             >
-              <option value="None">None</option>
-              <option value="Basic">Basic (Arrays, Strings, Sorting)</option>
-              <option value="Intermediate">Intermediate (Trees, Graphs, DP)</option>
-              <option value="Advanced">Advanced (DP, Segment Trees)</option>
-            </select>
+              <SelectTrigger className="w-full h-10">
+                <SelectValue placeholder="Select DSA level" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="None">None</SelectItem>
+                <SelectItem value="Basic">Basic (Arrays, Strings, Sorting)</SelectItem>
+                <SelectItem value="Intermediate">Intermediate (Trees, Graphs, DP)</SelectItem>
+                <SelectItem value="Advanced">Advanced (DP, Segment Trees)</SelectItem>
+              </SelectContent>
+            </Select>
           </FormField>
 
           <FormField label="Projects Count">
@@ -392,7 +407,7 @@ export function CandidateForm({ profile, onProfileChange, onSubmit }: CandidateF
             "bg-[hsl(240,5.9%,10%)]",
             "text-white",
             "hover:bg-[hsl(240,5.9%,20%)]",
-            "transition-colors shadow-sm"
+            "transition-colors"
           )}
         >
           🤖 Run ML Prediction
@@ -413,7 +428,7 @@ interface FormSectionProps {
 
 function FormSection({ icon, title, children }: FormSectionProps) {
   return (
-    <section className="bg-white rounded-xl p-6 border border-[hsl(240,5.9%,90%)] shadow-sm">
+    <section className="bg-white rounded-xl p-6 border border-gray-200">
       <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[hsl(240,10%,3.9%)]">
         {icon}
         {title}

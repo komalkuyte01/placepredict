@@ -1,13 +1,16 @@
 "use client";
 
 import {
-  ArrowLeft,
   Briefcase,
   CheckCircle,
+  ArrowLeft,
+  PenLine,
+  ClipboardCheck,
 } from "lucide-react";
 import { useCallback, useState } from "react";
 import { CandidateForm } from "@/components/forms/candidate-form";
 import { PredictionResults } from "@/components/results/prediction-results";
+import { Footer } from "@/components/shared/footer";
 import {
   createEmptyProfile,
   predictPlacement,
@@ -64,11 +67,11 @@ export function PlacementDashboard({
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#FAFBFC]">
+    <div className="min-h-screen bg-[#FAFBFC] flex flex-col">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-xl border-b border-gray-100">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-xl border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14">
-          <div className="flex items-center justify-between h-14 sm:h-16">
+          <div className="flex justify-between items-center h-14 sm:h-16">
             <div className="flex items-center gap-2 sm:gap-3">
               {onBack && (
                 <button
@@ -80,20 +83,18 @@ export function PlacementDashboard({
                   <ArrowLeft className="w-5 h-5" />
                 </button>
               )}
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-[#6e44ff] flex items-center justify-center shadow-lg shadow-[#6e44ff]/20">
-                <Briefcase className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-[#6e44ff]/10 flex items-center justify-center">
+                {initialProfile ? (
+                  <ClipboardCheck className="w-4 h-4 sm:w-5 sm:h-5 text-[#6e44ff]" fill="currentColor" />
+                ) : (
+                  <PenLine className="w-4 h-4 sm:w-5 sm:h-5 text-[#6e44ff]" fill="currentColor" />
+                )}
               </div>
-              <div>
-                <h1 className="text-base sm:text-lg font-semibold text-gray-900">
-                  PlacePredict
-                </h1>
-                <p className="text-xs text-gray-500">
-                  {initialProfile ? "Verify Your Details" : initialMode === "upload" ? "Resume Analysis Mode" : "Manual Entry Mode"}
-                </p>
-              </div>
+              <span className="text-base sm:text-lg font-semibold text-gray-900">
+                {initialProfile ? "Verify Your Details" : "Manual Entry Mode"}
+              </span>
             </div>
-
-            <div className="flex items-center gap-2">
+            <div className="flex items-center">
               {view === "results" && (
                 <button
                   type="button"
@@ -109,7 +110,7 @@ export function PlacementDashboard({
       </header>
 
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14 pt-22 pb-10">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14 pt-22 pb-10 flex-1">
         {view === "input" ? (
           <div className="space-y-8">
             {/* Resume Parse Success Banner (when coming from landing page) */}
@@ -166,19 +167,7 @@ export function PlacementDashboard({
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-[hsl(240,5.9%,90%)] mt-auto">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
-          <div className="text-center space-y-2">
-            <p className="text-xs text-[hsl(240,3.8%,46.1%)]">
-              PlacePredict — Student Placement Probability Predictor
-            </p>
-            <p className="text-xs text-[hsl(240,3.8%,60%)]">
-              ⚠️ Disclaimer: This is a probabilistic model for guidance only.
-              Results may vary based on actual recruitment processes.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <Footer showDisclaimer />
     </div>
   );
 }

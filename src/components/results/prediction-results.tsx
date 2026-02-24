@@ -85,7 +85,7 @@ export function PredictionResults({
   return (
     <div className="space-y-8">
       {/* Main Result Card */}
-      <div className="bg-white rounded-2xl border border-[hsl(240,5.9%,90%)] overflow-hidden shadow-sm">
+      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
         <div className="p-8">
           <div className="flex flex-col md:flex-row items-center gap-8">
             {/* Probability Circle */}
@@ -150,7 +150,7 @@ export function PredictionResults({
         </div>
 
         {/* Disclaimer */}
-        <div className="px-8 py-4 bg-[hsl(240,4.8%,95.9%)] border-t border-[hsl(240,5.9%,90%)]">
+        <div className="px-8 py-4 bg-[hsl(240,4.8%,95.9%)] border-t border-gray-200">
           <div className="flex items-start gap-2 text-sm text-[hsl(240,3.8%,46.1%)]">
             <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
             <p>
@@ -165,7 +165,7 @@ export function PredictionResults({
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Category Breakdown Pie Chart */}
-        <div className="bg-white rounded-xl border border-[hsl(240,5.9%,90%)] p-6 shadow-sm">
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[hsl(240,10%,3.9%)]">
             <Target className="w-5 h-5" />
             Score by Category
@@ -203,7 +203,7 @@ export function PredictionResults({
         </div>
 
         {/* Skills Radar Chart */}
-        <div className="bg-white rounded-xl border border-[hsl(240,5.9%,90%)] p-6 shadow-sm">
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[hsl(240,10%,3.9%)]">
             <TrendingUp className="w-5 h-5" />
             Skills Assessment
@@ -234,7 +234,7 @@ export function PredictionResults({
         </div>
 
         {/* Feature Contributions Bar Chart */}
-        <div className="bg-white rounded-xl border border-[hsl(240,5.9%,90%)] p-6 lg:col-span-2 shadow-sm">
+        <div className="bg-white rounded-xl border border-gray-200 p-6 lg:col-span-2">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[hsl(240,10%,3.9%)]">
             <TrendingUp className="w-5 h-5" />
             Feature Contributions
@@ -276,7 +276,7 @@ export function PredictionResults({
       {/* Strengths & Weaknesses */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Strengths */}
-        <div className="bg-white rounded-xl border border-[hsl(240,5.9%,90%)] p-6 shadow-sm">
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-emerald-600">
             <CheckCircle className="w-5 h-5" />
             Your Strengths ({prediction.strengths.length})
@@ -313,7 +313,7 @@ export function PredictionResults({
         </div>
 
         {/* Weaknesses */}
-        <div className="bg-white rounded-xl border border-[hsl(240,5.9%,90%)] p-6 shadow-sm">
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-red-600">
             <AlertTriangle className="w-5 h-5" />
             Areas to Improve ({prediction.weaknesses.length})
@@ -357,7 +357,7 @@ export function PredictionResults({
 
       {/* Improvement Suggestions */}
       {prediction.weaknesses.length > 0 && (
-        <div className="bg-white rounded-xl border border-[hsl(240,5.9%,90%)] p-6 shadow-sm">
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[hsl(240,10%,3.9%)]">
             <Lightbulb className="w-5 h-5 text-amber-500" />
             Personalized Suggestions
@@ -392,7 +392,7 @@ export function PredictionResults({
             "bg-[hsl(240,5.9%,10%)]",
             "text-white",
             "hover:bg-[hsl(240,5.9%,20%)]",
-            "transition-colors shadow-sm"
+            "transition-colors"
           )}
         >
           Analyze Another Profile
