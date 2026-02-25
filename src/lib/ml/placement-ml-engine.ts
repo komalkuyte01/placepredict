@@ -266,9 +266,6 @@ export function getTrainedModels(): TrainedModels {
   return trainedModels;
 }
 
-// Eagerly train models at module load time so the first prediction is instant.
-getTrainedModels();
-
 /** Retrains models from scratch, optionally with custom data. */
 export function retrainModels(customData?: TrainingDataPoint[]): TrainedModels {
   const trainingData = customData ?? generateTrainingData();

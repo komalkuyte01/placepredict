@@ -13,7 +13,6 @@ import { PredictionResults } from "@/components/results/prediction-results";
 import { Footer } from "@/components/shared/footer";
 import {
   createEmptyProfile,
-  predictPlacement,
 } from "@/lib/ml/placement-ml-engine";
 import type {
   CandidateProfile,
@@ -82,9 +81,30 @@ export function PlacementDashboard({
       setIssues([]);
     }
 
-    // Run ML prediction
-    const result = predictPlacement(profile);
-    setPrediction(result);
+    // Run ML prediction on the server (avoids blocking the browser thread)
+    try {
+      const predictionResponse = await fetch("/api/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile }),
+      });
+
+      const predictionData = await predictionResponse.json();
+
+      if (!predictionResponse.ok) {
+        alert(`Prediction failed: ${predictionData.error || "Unknown error"}`);
+        setIsLoading(false);
+        return;
+      }
+
+      setPrediction(predictionData.prediction);
+    } catch (error) {
+      console.error("Prediction request failed:", error);
+      alert("Failed to run prediction. Please try again.");
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(false);
     setView("results");
   }, [profile]);
