@@ -71,6 +71,12 @@ export function LandingPage({
           body: formData,
         });
 
+        if (!response.ok) {
+          const errorText = await response.text();
+          alert(`Resume parsing failed (HTTP ${response.status}):\n${errorText}`);
+          return;
+        }
+
         const result: ResumeParseResult = await response.json();
 
         if (result.success && result.extractedData) {
@@ -151,14 +157,18 @@ export function LandingPage({
             onResumeUploaded(newProfile, result);
           }
         } else {
-          // If parsing failed, still navigate but with empty profile
-          if (onResumeUploaded) {
-            onResumeUploaded(createEmptyProfile(), result);
-          }
+          // Show the actual error details from the API
+          const warnings = result.warnings?.join("\n") || "";
+          const missing = result.missingFields?.join(", ") || "";
+          alert(
+            `Resume parsing failed.\n\n` +
+            (warnings ? `Reason: ${warnings}\n` : "") +
+            (missing ? `Missing: ${missing}` : "")
+          );
         }
       } catch (error) {
-        console.error("Resume parsing failed:", error);
-        alert("Failed to parse resume. Please try again.");
+        const message = error instanceof Error ? error.message : String(error);
+        alert(`Resume parsing error:\n${message}`);
       } finally {
         setIsUploading(false);
       }

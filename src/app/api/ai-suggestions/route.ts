@@ -20,10 +20,9 @@ interface AISuggestion {
 
 /** Gemini models to try, in order of preference. */
 const MODEL_NAMES = [
+  "gemini-3-flash",
   "gemini-2.5-flash",
-  "gemini-2.0-flash",
-  "gemini-1.5-flash",
-  "gemini-pro",
+  "gemini-2.5-flash-lite",
 ];
 
 async function tryWithModels(prompt: string): Promise<string | null> {
@@ -33,7 +32,7 @@ async function tryWithModels(prompt: string): Promise<string | null> {
       const result = await model.generateContent(prompt);
       const response = result.response;
       return response.text();
-    } catch {}
+    } catch { }
   }
   return null;
 }

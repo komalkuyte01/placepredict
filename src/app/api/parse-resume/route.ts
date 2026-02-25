@@ -36,85 +36,38 @@ interface ParsedResumeData {
   };
 }
 
-const RESUME_PARSE_PROMPT = `You are an expert ATS (Applicant Tracking System) resume analyzer. Analyze the following resume content and extract structured information that would be relevant for placement/hiring processes.
+const RESUME_PARSE_PROMPT = `Extract structured data from this resume. Return ONLY a JSON object, no markdown.
 
-## Fields to Extract:
-
-Looking for these specific data fields from the resume:
-
-1. **Academic Information:**
-   - CGPA/GPA (scale 0-10)
-   - 10th/SSC/Secondary percentage
-   - 12th/HSC/Higher Secondary percentage
-   - Degree Branch (Computer Science, Information Technology, Electronics, Electrical, Mechanical, Civil, or Other)
-   - Active Backlogs count
-
-2. **Technical Skills:**
-   - Technical Skills (Programming languages, frameworks, tools, databases, cloud platforms, etc.)
-   - DSA/Algorithm proficiency level
-   - Number of projects
-   - Internship experience (yes/no)
-   - Certifications
-
-3. **Experience & ATS Score:**
-   - Hackathon participation count
-   - Open source contributions (yes/no)
-   - Resume ATS Score (0-100) - REQUIRED: You MUST calculate and return this score based on the guidelines below
-
-Return a JSON object with this EXACT structure (use null for fields not found):
-
+Schema (use null if not found, [] for empty arrays):
 {
   "academic": {
-    "cgpa": <number 0-10 or null>,
-    "tenthPercentage": <number 0-100 or null>,
-    "twelfthPercentage": <number 0-100 or null>,
-    "degreeBranch": <"Computer Science" | "Information Technology" | "Electronics" | "Electrical" | "Mechanical" | "Civil" | "Other">,
-    "backlogs": <number or 0>
+    "cgpa": number|null,          // 0-10 scale, convert from % if needed
+    "tenthPercentage": number|null,
+    "twelfthPercentage": number|null,
+    "degreeBranch": "Computer Science"|"Information Technology"|"Electronics"|"Electrical"|"Mechanical"|"Civil"|"Other",
+    "backlogs": number            // default 0
   },
   "technical": {
-    "technicalSkills": [<array of ALL technical skills: programming languages, frameworks, libraries, databases, tools, cloud platforms, etc.>],
-    "dsaLevel": <"None" | "Basic" | "Intermediate" | "Advanced">,
-    "projectsCount": <number of projects mentioned>,
-    "hasInternship": <true if internship experience mentioned>,
-    "certifications": [<array of certifications found>]
+    "technicalSkills": string[],  // ALL: languages, frameworks, DBs, tools, cloud
+    "dsaLevel": "None"|"Basic"|"Intermediate"|"Advanced",
+    "projectsCount": number,      // count all projects
+    "hasInternship": boolean,
+    "certifications": string[]
   },
   "experience": {
-    "hackathonsCount": <number of hackathons participated>,
-    "hasOpenSourceContributions": <true if open source contributions mentioned>,
-    "resumeATSScore": <REQUIRED: ATS compatibility score 0-100, NEVER return 0 - calculate based on guidelines below>
+    "hackathonsCount": number,
+    "hasOpenSourceContributions": boolean,
+    "resumeATSScore": number      // 0-100, realistic (most resumes: 40-70)
   }
 }
 
-## DSA Level Guidelines:
-- "Advanced": Competitive programming, LeetCode hard problems, advanced DP, graph algorithms, segment trees, CodeForces/CodeChef ratings
-- "Intermediate": Data structures, algorithms, trees, graphs, LeetCode medium, basic DP
-- "Basic": Basic programming, arrays, strings, loops, simple sorting
-- "None": No DSA/algorithm mentions
+DSA mapping: None=no mention, Basic=arrays/sorting, Intermediate=trees/graphs/DP, Advanced=competitive programming/hard problems.
+ATS score: keyword density, section structure, parsability, quantified achievements. Most=40-70, well-optimized=75-85.
+Capitalize properly: "JavaScript", "React", "AWS", "Docker".
 
-## ATS Score (0-100):
-Calculate the resumeATSScore as a realistic ATS (Applicant Tracking System) compatibility score, similar to what real ATS software like Workday, Taleo, Greenhouse, Lever, iCIMS, and BrassRing would assign. 
-
-Consider how actual ATS systems parse and score resumes:
-- Keyword matching against job descriptions
-- Parsability of the document format
-- Section recognition and structure
-- Contact information extraction success
-- Skills and experience relevance
-- Readability by automated systems
-
-Be realistic - most resumes score 40-70 on real ATS systems. Only exceptionally well-optimized resumes score above 80.
-
-IMPORTANT:
-- Return ONLY valid JSON, no markdown code blocks, no explanation
-- Use proper capitalization ("JavaScript", "Python", "React", "AWS", "Docker")
-- Extract ALL technical skills: languages, frameworks, libraries, databases, tools, cloud platforms, DevOps tools, etc.
-- Count ALL projects mentioned (personal, academic, professional)
-- Look for CGPA, GPA, percentage marks in education section
-- If field not found, use null for numbers and [] for arrays
-- resumeATSScore should reflect real-world ATS scoring
-
-Resume content:
+Resume:
 `;
+
 
 /**
  * Extract text from PDF buffer using pdf-parse v2
@@ -140,7 +93,12 @@ async function extractTextFromPDF(buffer: Buffer): Promise<string> {
  * Available Gemini model names to try (in order of preference)
  * Each model has separate quota limits
  */
-const GEMINI_MODELS = ["gemini-2.5-flash"];
+/** Gemini models to try, in order of preference. Falls back to lower models on quota errors. */
+const GEMINI_MODELS = [
+  "gemini-3-flash",
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
+];
 
 /**
  * Parse resume using Gemini AI with the PDF sent directly as file
@@ -208,15 +166,9 @@ async function parseResumeWithGemini(
         cleanedResponse = jsonMatch[0];
       }
 
-      console.log(`Successfully used model: ${modelName}`);
       return JSON.parse(cleanedResponse);
     } catch (error) {
-      console.log(
-        `Model ${modelName} failed:`,
-        error instanceof Error ? error.message : error,
-      );
       lastError = error instanceof Error ? error : new Error(String(error));
-      // Continue to next model
     }
   }
 
@@ -262,8 +214,7 @@ export async function POST(request: NextRequest) {
     try {
       extractedText = await extractTextFromPDF(buffer);
     } catch {
-      // Text extraction failed, will try direct PDF to Gemini
-      console.log("Text extraction failed, attempting direct PDF analysis");
+      // Text extraction failed — will try sending PDF directly to Gemini
     }
 
     // If no text and file is small, we can still try direct PDF
@@ -357,7 +308,7 @@ export async function POST(request: NextRequest) {
       parsedData.academic?.twelfthPercentage,
       (parsedData.technical?.technicalSkills?.length || 0) > 0,
       parsedData.technical?.dsaLevel &&
-        parsedData.technical.dsaLevel !== "None",
+      parsedData.technical.dsaLevel !== "None",
       (parsedData.technical?.projectsCount || 0) > 0,
       parsedData.technical?.hasInternship,
       (parsedData.technical?.certifications?.length || 0) > 0,

@@ -266,6 +266,9 @@ export function getTrainedModels(): TrainedModels {
   return trainedModels;
 }
 
+// Eagerly train models at module load time so the first prediction is instant.
+getTrainedModels();
+
 /** Retrains models from scratch, optionally with custom data. */
 export function retrainModels(customData?: TrainingDataPoint[]): TrainedModels {
   const trainingData = customData ?? generateTrainingData();
@@ -308,7 +311,34 @@ export const SOFTWARE_DEVELOPER_CRITERIA: RoleCriteria = {
 };
 
 /**
- * Normalizes a single feature vector using stored min/max values.
+ * Feature weights: downweight academics, upweight technical/experience.
+ * Indices: 0=CGPA, 1=Backlogs, 2=10th%, 3=12th%, 4=Branch,
+ *          5=Skills, 6=DSA, 7=Projects, 8=Internship, 9=Certs,
+ *         10=Hackathons, 11=OpenSource, 12=ATS, 13=Aptitude,
+ *         14=Communication, 15=MockInterview, 16=English
+ */
+const FEATURE_WEIGHTS = [
+  0.3,  // CGPA              — low priority
+  0.5,  // Backlogs          — moderate (penalty)
+  0.1,  // 10th Percentage   — very low priority
+  0.1,  // 12th Percentage   — very low priority
+  0.4,  // Branch Relevance  — low-moderate
+  2.0,  // Technical Skills  — HIGH priority
+  1.6,  // DSA Level         — HIGH priority
+  2.0,  // Projects Count    — HIGH priority
+  2.0,  // Has Internship    — HIGH priority
+  1.2,  // Certifications    — medium priority
+  1.2,  // Hackathons        — medium priority
+  1.5,  // Open Source       — HIGH priority
+  0.8,  // Resume ATS Score  — moderate
+  0.6,  // Aptitude Score    — moderate
+  1.0,  // Communication     — medium priority
+  0.8,  // Mock Interview    — moderate
+  0.6,  // English Fluency   — moderate
+];
+
+/**
+ * Normalizes a single feature vector and applies feature weighting.
  */
 function normalizeSingleFeature(
   features: number[],
@@ -318,7 +348,8 @@ function normalizeSingleFeature(
   return features.map((val, j) => {
     const min = mins[j] ?? 0;
     const max = maxs[j] ?? 1;
-    return max === min ? 0.5 : (val - min) / (max - min);
+    const normalized = max === min ? 0.5 : (val - min) / (max - min);
+    return normalized * (FEATURE_WEIGHTS[j] ?? 1.0);
   });
 }
 
@@ -366,7 +397,28 @@ export function predictPlacement(
   const baseFromEnsemble = ensembleScore * 70; // 0, 17.5, 35, 52.5, or 70
   const heuristicProbability = calculateRealProbability(profile);
   const heuristicBonus = (heuristicProbability / 100) * 30; // 0-30 granularity
-  const probability = baseFromEnsemble + heuristicBonus;
+  let probability = baseFromEnsemble + heuristicBonus;
+
+  // ── Eligibility penalties ──
+  // Most companies enforce hard cutoffs on these criteria.
+  // Failing them drastically reduces placement chances.
+  const cgpa = profile.academic.cgpa ?? 0;
+  const twelfthPct = profile.academic.twelfthPercentage ?? 0;
+  const skillCount = profile.technical.technicalSkills.length;
+  const projectCount = profile.technical.projectsCount ?? 0;
+
+  if (cgpa > 0 && cgpa < 7.5) {
+    probability *= 0.3; // Most companies require 7.5+ CGPA
+  }
+  if (twelfthPct > 0 && twelfthPct < 60) {
+    probability *= 0.2; // 60% in 12th is a common minimum
+  }
+  if (skillCount < 5) {
+    probability *= 0.3; // Fewer than 5 skills is a major red flag
+  }
+  if (projectCount < 2) {
+    probability *= 0.3; // Companies expect at least 2-3 projects
+  }
 
   // Calculate contributions
   const contributions = calculateSimpleContributions(profile);
@@ -399,102 +451,89 @@ export function predictPlacement(
 }
 
 /**
- * Calculate real probability based on profile data.
+ * Heuristic probability scoring.
+ * Point allocation: Academic 10, Technical 45, Experience 25, Soft Skills 20 = 100.
  */
 function calculateRealProbability(profile: CandidateProfile): number {
   let score = 0;
   const maxScore = 100;
 
-  // Academic (25 points max)
+  // ── Academic (10 points max) — low priority ──
   const cgpa = profile.academic.cgpa ?? 0;
   const backlogs = profile.academic.backlogs ?? 0;
-  const tenth = profile.academic.tenthPercentage ?? 0;
-  const twelfth = profile.academic.twelfthPercentage ?? 0;
 
-  // CGPA: 0-10 points
-  if (cgpa >= 9) score += 10;
-  else if (cgpa >= 8) score += 8;
-  else if (cgpa >= 7) score += 6;
-  else if (cgpa >= 6) score += 4;
-  else score += cgpa * 0.4;
+  // CGPA: 0-5 points
+  if (cgpa >= 9) score += 5;
+  else if (cgpa >= 8) score += 4;
+  else if (cgpa >= 7) score += 3;
+  else if (cgpa >= 6) score += 1;
+  else score += cgpa * 0.2;
 
-  // Backlogs penalty: -5 per backlog
-  score -= Math.min(backlogs * 5, 15);
+  // 10th/12th: 0-1 point each (minimal impact)
+  if ((profile.academic.tenthPercentage ?? 0) >= 70) score += 1;
+  if ((profile.academic.twelfthPercentage ?? 0) >= 70) score += 1;
 
-  // 10th percentage: 0-4 points
-  if (tenth >= 90) score += 4;
-  else if (tenth >= 80) score += 3;
-  else if (tenth >= 70) score += 2;
-  else if (tenth >= 60) score += 1;
-
-  // 12th percentage: 0-4 points
-  if (twelfth >= 90) score += 4;
-  else if (twelfth >= 80) score += 3;
-  else if (twelfth >= 70) score += 2;
-  else if (twelfth >= 60) score += 1;
-
-  // Branch relevance: 0-2 points
+  // Branch relevance: 0-1 point
   if (
     ["Computer Science", "Information Technology", "Electronics"].includes(
       profile.academic.degreeBranch,
     )
   ) {
-    score += 2;
+    score += 1;
   }
 
-  // Technical (35 points max)
+  // Backlogs penalty: -3 per backlog (max -9)
+  score -= Math.min(backlogs * 3, 9);
+
+  // ── Technical (45 points max) — HIGH priority ──
   const skills = profile.technical.technicalSkills.length;
   const dsa = profile.technical.dsaLevel;
   const projects = profile.technical.projectsCount ?? 0;
   const hasInternship = profile.technical.hasInternship;
   const certs = profile.technical.certifications.length;
 
-  // Technical skills: 0-8 points
-  score += Math.min(skills * 2, 8);
+  // Technical skills: 0-10 points
+  score += Math.min(skills * 2, 10);
 
-  // DSA Level: 0-10 points
-  if (dsa === "Advanced") score += 10;
-  else if (dsa === "Intermediate") score += 7;
+  // DSA Level: 0-12 points (most critical technical factor)
+  if (dsa === "Advanced") score += 12;
+  else if (dsa === "Intermediate") score += 8;
   else if (dsa === "Basic") score += 3;
 
-  // Projects: 0-6 points
-  score += Math.min(projects * 1.5, 6);
+  // Projects: 0-10 points
+  score += Math.min(projects * 2.5, 10);
 
-  // Internship: 0-8 points
-  if (hasInternship) score += 8;
+  // Internship: 0-10 points
+  if (hasInternship) score += 10;
 
   // Certifications: 0-3 points
   score += Math.min(certs, 3);
 
-  // Experience (20 points max)
+  // ── Experience (25 points max) — high priority ──
   const hackathons = profile.experience.hackathonsCount ?? 0;
   const hasOpenSource = profile.experience.hasOpenSourceContributions;
   const atsScore = profile.experience.resumeATSScore;
 
-  // Hackathons: 0-4 points
-  score += Math.min(hackathons * 2, 4);
+  // Hackathons: 0-6 points
+  score += Math.min(hackathons * 2, 6);
 
-  // Open source: 0-4 points
-  if (hasOpenSource) score += 4;
+  // Open source: 0-8 points
+  if (hasOpenSource) score += 8;
 
-  // ATS Score: 0-6 points
-  score += (atsScore / 100) * 6;
+  // ATS Score: 0-5 points
+  score += (atsScore / 100) * 5;
 
-  // Soft Skills (20 points max)
+  // ── Soft Skills (20 points max) — medium priority ──
   const aptitude = profile.softSkills.aptitudeScore;
   const communication = profile.softSkills.communicationScore;
   const mockInterview = profile.softSkills.mockInterviewScore;
   const english = profile.softSkills.englishFluency;
 
-  // Aptitude: 0-6 points
-  if (aptitude >= 90) score += 6;
-  else if (aptitude >= 80) score += 5;
-  else if (aptitude >= 70) score += 4;
-  else if (aptitude >= 60) score += 3;
-  else score += aptitude * 0.03;
+  // Aptitude: 0-5 points
+  score += (aptitude / 100) * 5;
 
-  // Communication: 0-5 points
-  score += (communication / 10) * 5;
+  // Communication: 0-6 points
+  score += (communication / 10) * 6;
 
   // Mock Interview: 0-5 points
   score += (mockInterview / 10) * 5;
@@ -502,7 +541,6 @@ function calculateRealProbability(profile: CandidateProfile): number {
   // English: 0-4 points
   score += (english / 10) * 4;
 
-  // Ensure bounded result
   return Math.max(0, Math.min(maxScore, score));
 }
 

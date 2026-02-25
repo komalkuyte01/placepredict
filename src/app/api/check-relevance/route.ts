@@ -278,10 +278,9 @@ function localRelevanceCheck(
 
 /** Gemini models to try, in order of preference. */
 const GEMINI_MODELS = [
+  "gemini-3-flash",
   "gemini-2.5-flash",
-  "gemini-2.0-flash",
-  "gemini-1.5-flash",
-  "gemini-pro",
+  "gemini-2.5-flash-lite",
 ];
 
 export async function POST(request: Request) {
@@ -360,7 +359,7 @@ If all items are legitimate and relevant, respond with:
         );
 
         return NextResponse.json({ issues });
-      } catch {}
+      } catch { }
     }
 
     // All models failed — use local fallback
