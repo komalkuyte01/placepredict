@@ -6,7 +6,7 @@
   --primary-light: #8b6aff;
   --primary-lighter: #ebe7ff;
   --primary-bg: #f8f7ff;
-  
+
   /* Neutral Colors */
   --text-primary: #1f2937;
   --text-secondary: #6b7280;
@@ -15,23 +15,23 @@
   --border-light: #f3f4f6;
   --bg-white: #ffffff;
   --bg-gray: #f9fafb;
-  
+
   /* Semantic Colors */
-  --color-success: #10B981;
-  --color-warning: #F59E0B;
-  --color-danger: #EF4444;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
   --color-info: #6e44ff;
-  
+
   /* Chart Colors */
   --chart-blue: #6e44ff;
-  --chart-green: #10B981;
-  --chart-yellow: #F59E0B;
-  --chart-red: #EF4444;
-  --chart-purple: #8B5CF6;
-  --chart-pink: #EC4899;
-  --chart-cyan: #06B6D4;
-  --chart-orange: #F97316;
-  
+  --chart-green: #10b981;
+  --chart-yellow: #f59e0b;
+  --chart-red: #ef4444;
+  --chart-purple: #8b5cf6;
+  --chart-pink: #ec4899;
+  --chart-cyan: #06b6d4;
+  --chart-orange: #f97316;
+
   --radius: 8px;
 }
 
@@ -42,8 +42,12 @@ html {
 body {
   background-color: var(--bg-gray);
   color: var(--text-primary);
-  font-family: var(--font-poppins), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-feature-settings: "rlig" 1, "calt" 1;
+  font-family:
+    var(--font-poppins), system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, sans-serif;
+  font-feature-settings:
+    "rlig" 1,
+    "calt" 1;
 }
 
 /* Custom scrollbar - subtle */
@@ -151,7 +155,7 @@ input[type="checkbox"]:checked {
 }
 
 input[type="checkbox"]:checked::after {
-  content: '';
+  content: "";
   position: absolute;
   left: 5px;
   top: 2px;

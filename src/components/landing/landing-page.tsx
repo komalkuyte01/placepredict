@@ -1,33 +1,44 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
 import {
-  Upload,
-  FileText,
-  Brain,
-  GraduationCap,
-  Briefcase,
-  TrendingUp,
-  CheckCircle2,
   ArrowRight,
-  Lightbulb,
   BarChart3,
-  Zap,
+  Brain,
+  Briefcase,
+  CheckCircle2,
+  FileText,
+  GraduationCap,
+  Lightbulb,
+  Loader2,
   Shield,
   Star,
-  Loader2,
+  TrendingUp,
+  Upload,
+  Zap,
 } from "lucide-react";
+import { useCallback, useRef, useState } from "react";
 import { Footer } from "@/components/shared/footer";
-import type { CandidateProfile, ResumeParseResult } from "@/lib/types/placement";
 import { createEmptyProfile } from "@/lib/ml/placement-ml-engine";
+import type {
+  CandidateProfile,
+  ResumeParseResult,
+} from "@/lib/types/placement";
 
 interface LandingPageProps {
   onSelectOption: (option: "upload" | "manual") => void;
-  onResumeUploaded?: (profile: CandidateProfile, result: ResumeParseResult) => void;
+  onResumeUploaded?: (
+    profile: CandidateProfile,
+    result: ResumeParseResult,
+  ) => void;
 }
 
-export function LandingPage({ onSelectOption, onResumeUploaded }: LandingPageProps) {
-  const [hoveredCard, setHoveredCard] = useState<"upload" | "manual" | null>(null);
+export function LandingPage({
+  onSelectOption,
+  onResumeUploaded,
+}: LandingPageProps) {
+  const [hoveredCard, setHoveredCard] = useState<"upload" | "manual" | null>(
+    null,
+  );
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -35,91 +46,125 @@ export function LandingPage({ onSelectOption, onResumeUploaded }: LandingPagePro
     fileInputRef.current?.click();
   }, []);
 
-  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
 
-    // Reset input so same file can be selected again
-    e.target.value = "";
+      // Reset input so same file can be selected again
+      e.target.value = "";
 
-    // Validate file type
-    if (file.type !== "application/pdf") {
-      alert("Please select a PDF file");
-      return;
-    }
-
-    setIsUploading(true);
-
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch("/api/parse-resume", {
-        method: "POST",
-        body: formData,
-      });
-
-      const result: ResumeParseResult = await response.json();
-
-      if (result.success && result.extractedData) {
-        // Build profile from extracted data
-        const baseProfile = createEmptyProfile();
-        const newProfile: CandidateProfile = { ...baseProfile };
-
-        // Merge academic data
-        if (result.extractedData.academic) {
-          const academic = result.extractedData.academic;
-          newProfile.academic = {
-            ...baseProfile.academic,
-            ...(academic.cgpa && academic.cgpa > 0 ? { cgpa: academic.cgpa } : {}),
-            ...(academic.tenthPercentage && academic.tenthPercentage > 0 ? { tenthPercentage: academic.tenthPercentage } : {}),
-            ...(academic.twelfthPercentage && academic.twelfthPercentage > 0 ? { twelfthPercentage: academic.twelfthPercentage } : {}),
-            ...(academic.degreeBranch ? { degreeBranch: academic.degreeBranch } : {}),
-            ...(academic.backlogs !== undefined ? { backlogs: academic.backlogs } : {}),
-          };
-        }
-
-        // Merge technical data
-        if (result.extractedData.technical) {
-          const tech = result.extractedData.technical;
-          newProfile.technical = {
-            ...baseProfile.technical,
-            technicalSkills: tech.technicalSkills?.length > 0 ? tech.technicalSkills : baseProfile.technical.technicalSkills,
-            dsaLevel: tech.dsaLevel && tech.dsaLevel !== "None" ? tech.dsaLevel : baseProfile.technical.dsaLevel,
-            projectsCount: (tech.projectsCount ?? 0) > 0 ? tech.projectsCount : baseProfile.technical.projectsCount,
-            hasInternship: tech.hasInternship || baseProfile.technical.hasInternship,
-            certifications: tech.certifications?.length > 0 ? tech.certifications : baseProfile.technical.certifications,
-          };
-        }
-
-        // Merge experience data
-        if (result.extractedData.experience) {
-          const exp = result.extractedData.experience;
-          newProfile.experience = {
-            ...baseProfile.experience,
-            hackathonsCount: (exp.hackathonsCount ?? 0) > 0 ? exp.hackathonsCount : baseProfile.experience.hackathonsCount,
-            hasOpenSourceContributions: exp.hasOpenSourceContributions || baseProfile.experience.hasOpenSourceContributions,
-            resumeATSScore: exp.resumeATSScore > 0 ? exp.resumeATSScore : baseProfile.experience.resumeATSScore,
-          };
-        }
-
-        // Call the callback with parsed data
-        if (onResumeUploaded) {
-          onResumeUploaded(newProfile, result);
-        }
-      } else {
-        // If parsing failed, still navigate but with empty profile
-        if (onResumeUploaded) {
-          onResumeUploaded(createEmptyProfile(), result);
-        }
+      // Validate file type
+      if (file.type !== "application/pdf") {
+        alert("Please select a PDF file");
+        return;
       }
-    } catch (error) {
-      console.error("Resume parsing failed:", error);
-      alert("Failed to parse resume. Please try again.");
-    } finally {
-      setIsUploading(false);
-    }
-  }, [onResumeUploaded]);
+
+      setIsUploading(true);
+
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch("/api/parse-resume", {
+          method: "POST",
+          body: formData,
+        });
+
+        const result: ResumeParseResult = await response.json();
+
+        if (result.success && result.extractedData) {
+          // Build profile from extracted data
+          const baseProfile = createEmptyProfile();
+          const newProfile: CandidateProfile = { ...baseProfile };
+
+          // Merge academic data
+          if (result.extractedData.academic) {
+            const academic = result.extractedData.academic;
+            newProfile.academic = {
+              ...baseProfile.academic,
+              ...(academic.cgpa && academic.cgpa > 0
+                ? { cgpa: academic.cgpa }
+                : {}),
+              ...(academic.tenthPercentage && academic.tenthPercentage > 0
+                ? { tenthPercentage: academic.tenthPercentage }
+                : {}),
+              ...(academic.twelfthPercentage && academic.twelfthPercentage > 0
+                ? { twelfthPercentage: academic.twelfthPercentage }
+                : {}),
+              ...(academic.degreeBranch
+                ? { degreeBranch: academic.degreeBranch }
+                : {}),
+              ...(academic.backlogs !== undefined
+                ? { backlogs: academic.backlogs }
+                : {}),
+            };
+          }
+
+          // Merge technical data
+          if (result.extractedData.technical) {
+            const tech = result.extractedData.technical;
+            newProfile.technical = {
+              ...baseProfile.technical,
+              technicalSkills:
+                tech.technicalSkills?.length > 0
+                  ? tech.technicalSkills
+                  : baseProfile.technical.technicalSkills,
+              dsaLevel:
+                tech.dsaLevel && tech.dsaLevel !== "None"
+                  ? tech.dsaLevel
+                  : baseProfile.technical.dsaLevel,
+              projectsCount:
+                (tech.projectsCount ?? 0) > 0
+                  ? tech.projectsCount
+                  : baseProfile.technical.projectsCount,
+              hasInternship:
+                tech.hasInternship || baseProfile.technical.hasInternship,
+              certifications:
+                tech.certifications?.length > 0
+                  ? tech.certifications
+                  : baseProfile.technical.certifications,
+            };
+          }
+
+          // Merge experience data
+          if (result.extractedData.experience) {
+            const exp = result.extractedData.experience;
+            newProfile.experience = {
+              ...baseProfile.experience,
+              hackathonsCount:
+                (exp.hackathonsCount ?? 0) > 0
+                  ? exp.hackathonsCount
+                  : baseProfile.experience.hackathonsCount,
+              hasOpenSourceContributions:
+                exp.hasOpenSourceContributions ||
+                baseProfile.experience.hasOpenSourceContributions,
+              resumeATSScore:
+                exp.resumeATSScore > 0
+                  ? exp.resumeATSScore
+                  : baseProfile.experience.resumeATSScore,
+            };
+          }
+
+          // Call the callback with parsed data
+          if (onResumeUploaded) {
+            onResumeUploaded(newProfile, result);
+          }
+        } else {
+          // If parsing failed, still navigate but with empty profile
+          if (onResumeUploaded) {
+            onResumeUploaded(createEmptyProfile(), result);
+          }
+        }
+      } catch (error) {
+        console.error("Resume parsing failed:", error);
+        alert("Failed to parse resume. Please try again.");
+      } finally {
+        setIsUploading(false);
+      }
+    },
+    [onResumeUploaded],
+  );
 
   const features = [
     {
@@ -178,8 +223,12 @@ export function LandingPage({ onSelectOption, onResumeUploaded }: LandingPagePro
               <Loader2 className="w-8 h-8 text-[#6e44ff] animate-spin" />
             </div>
             <div className="text-center">
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">Parsing Resume</h3>
-              <p className="text-sm text-gray-500">AI is extracting your details...</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                Parsing Resume
+              </h3>
+              <p className="text-sm text-gray-500">
+                AI is extracting your details...
+              </p>
             </div>
           </div>
         </div>

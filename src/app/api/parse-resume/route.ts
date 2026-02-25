@@ -140,9 +140,7 @@ async function extractTextFromPDF(buffer: Buffer): Promise<string> {
  * Available Gemini model names to try (in order of preference)
  * Each model has separate quota limits
  */
-const GEMINI_MODELS = [
-  "gemini-2.5-flash",
-];
+const GEMINI_MODELS = ["gemini-2.5-flash"];
 
 /**
  * Parse resume using Gemini AI with the PDF sent directly as file
@@ -162,7 +160,10 @@ async function parseResumeWithGemini(
       let result: Awaited<ReturnType<typeof model.generateContent>> | undefined;
 
       // Try with inline data first (for PDFs), fall back to text
-      if (mimeType === "application/pdf" && fileBuffer.length < 4 * 1024 * 1024) {
+      if (
+        mimeType === "application/pdf" &&
+        fileBuffer.length < 4 * 1024 * 1024
+      ) {
         // Send PDF directly to Gemini (under 4MB limit for inline)
         const filePart: Part = {
           inlineData: {
@@ -185,7 +186,9 @@ async function parseResumeWithGemini(
         }
       } else if (extractedText) {
         // Use extracted text for large files or non-PDFs
-        result = await model.generateContent(RESUME_PARSE_PROMPT + extractedText);
+        result = await model.generateContent(
+          RESUME_PARSE_PROMPT + extractedText,
+        );
       } else {
         throw new Error("No content to process");
       }
@@ -208,7 +211,10 @@ async function parseResumeWithGemini(
       console.log(`Successfully used model: ${modelName}`);
       return JSON.parse(cleanedResponse);
     } catch (error) {
-      console.log(`Model ${modelName} failed:`, error instanceof Error ? error.message : error);
+      console.log(
+        `Model ${modelName} failed:`,
+        error instanceof Error ? error.message : error,
+      );
       lastError = error instanceof Error ? error : new Error(String(error));
       // Continue to next model
     }

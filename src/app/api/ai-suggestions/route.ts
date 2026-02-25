@@ -1,6 +1,9 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
-import type { CandidateProfile, PlacementPrediction } from "@/lib/types/placement";
+import type {
+  CandidateProfile,
+  PlacementPrediction,
+} from "@/lib/types/placement";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
@@ -15,12 +18,12 @@ interface AISuggestion {
   priority: "high" | "medium" | "low";
 }
 
-// Model fallback chain
+/** Gemini models to try, in order of preference. */
 const MODEL_NAMES = [
   "gemini-2.5-flash",
-  "gemini-2.0-flash", 
+  "gemini-2.0-flash",
   "gemini-1.5-flash",
-  "gemini-pro"
+  "gemini-pro",
 ];
 
 async function tryWithModels(prompt: string): Promise<string | null> {
@@ -30,12 +33,7 @@ async function tryWithModels(prompt: string): Promise<string | null> {
       const result = await model.generateContent(prompt);
       const response = result.response;
       return response.text();
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.log(`Model ${modelName} failed:`, errorMessage);
-      // Continue to next model
-      continue;
-    }
+    } catch {}
   }
   return null;
 }
@@ -47,7 +45,7 @@ export async function POST(request: Request) {
     if (!profile) {
       return NextResponse.json(
         { error: "Profile is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -80,10 +78,10 @@ EXPERIENCE & SOFT SKILLS:
 - Mock Interview Score: ${profile.softSkills?.mockInterviewScore ?? "Not provided"}/10
 
 IDENTIFIED WEAKNESSES:
-${prediction.weaknesses.map(w => `- ${w.area}: ${w.currentValue} -> Target: ${w.targetValue} (${w.priority} priority)`).join("\n") || "None identified"}
+${prediction.weaknesses.map((w) => `- ${w.area}: ${w.currentValue} -> Target: ${w.targetValue} (${w.priority} priority)`).join("\n") || "None identified"}
 
 IDENTIFIED STRENGTHS:
-${prediction.strengths.map(s => `- ${s.area}: ${s.value} (${s.impact} impact)`).join("\n") || "None identified"}
+${prediction.strengths.map((s) => `- ${s.area}: ${s.value} (${s.impact} impact)`).join("\n") || "None identified"}
 
 Based on this analysis, provide exactly 4 personalized suggestions. Each suggestion should be specific, actionable, and directly address the candidate's weaknesses or help leverage their strengths.
 
@@ -107,7 +105,7 @@ Focus on:
     if (!text) {
       // Fallback suggestions if AI fails
       return NextResponse.json({
-        suggestions: generateFallbackSuggestions(profile, prediction)
+        suggestions: generateFallbackSuggestions(profile, prediction),
       });
     }
 
@@ -122,21 +120,21 @@ Focus on:
     } catch {
       // Parse error - return fallback
       return NextResponse.json({
-        suggestions: generateFallbackSuggestions(profile, prediction)
+        suggestions: generateFallbackSuggestions(profile, prediction),
       });
     }
   } catch (error) {
     console.error("AI Suggestions error:", error);
     return NextResponse.json(
       { error: "Failed to generate suggestions" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 function generateFallbackSuggestions(
   profile: CandidateProfile,
-  prediction: PlacementPrediction
+  prediction: PlacementPrediction,
 ): AISuggestion[] {
   const suggestions: AISuggestion[] = [];
 
@@ -145,49 +143,56 @@ function generateFallbackSuggestions(
     if (weakness.area.toLowerCase().includes("dsa")) {
       suggestions.push({
         title: "Master DSA Fundamentals",
-        description: "Practice on LeetCode or HackerRank daily. Focus on arrays, strings, trees, and dynamic programming. Aim to solve 100+ problems in 2 months.",
-        priority: "high"
+        description:
+          "Practice on LeetCode or HackerRank daily. Focus on arrays, strings, trees, and dynamic programming. Aim to solve 100+ problems in 2 months.",
+        priority: "high",
       });
     } else if (weakness.area.toLowerCase().includes("project")) {
       suggestions.push({
         title: "Build Portfolio Projects",
-        description: "Create 2-3 full-stack projects showcasing different technologies. Deploy them on Vercel/Netlify and host code on GitHub with proper documentation.",
-        priority: "high"
+        description:
+          "Create 2-3 full-stack projects showcasing different technologies. Deploy them on Vercel/Netlify and host code on GitHub with proper documentation.",
+        priority: "high",
       });
     } else if (weakness.area.toLowerCase().includes("internship")) {
       suggestions.push({
         title: "Secure an Internship",
-        description: "Apply to internships on LinkedIn, Internshala, and company career pages. Even short-term or remote internships add valuable experience.",
-        priority: "high"
+        description:
+          "Apply to internships on LinkedIn, Internshala, and company career pages. Even short-term or remote internships add valuable experience.",
+        priority: "high",
       });
     } else if (weakness.area.toLowerCase().includes("certification")) {
       suggestions.push({
         title: "Get Industry Certifications",
-        description: "Pursue AWS/Azure cloud certifications or courses from Coursera/Udemy. These validate your skills and stand out on resumes.",
-        priority: "medium"
+        description:
+          "Pursue AWS/Azure cloud certifications or courses from Coursera/Udemy. These validate your skills and stand out on resumes.",
+        priority: "medium",
       });
     }
   }
 
   // Fill remaining slots
   while (suggestions.length < 4) {
-    if (!suggestions.some(s => s.title.includes("GitHub"))) {
+    if (!suggestions.some((s) => s.title.includes("GitHub"))) {
       suggestions.push({
         title: "Strengthen GitHub Profile",
-        description: "Maintain consistent commit history, contribute to open source, and showcase your best projects with detailed READMEs.",
-        priority: "medium"
+        description:
+          "Maintain consistent commit history, contribute to open source, and showcase your best projects with detailed READMEs.",
+        priority: "medium",
       });
-    } else if (!suggestions.some(s => s.title.includes("Communication"))) {
+    } else if (!suggestions.some((s) => s.title.includes("Communication"))) {
       suggestions.push({
         title: "Improve Communication Skills",
-        description: "Practice mock interviews, join toastmasters, or take online communication courses. Clear communication is key in interviews.",
-        priority: "medium"
+        description:
+          "Practice mock interviews, join toastmasters, or take online communication courses. Clear communication is key in interviews.",
+        priority: "medium",
       });
     } else {
       suggestions.push({
         title: "Network Actively",
-        description: "Connect with professionals on LinkedIn, attend tech meetups, and participate in hackathons to expand your network.",
-        priority: "low"
+        description:
+          "Connect with professionals on LinkedIn, attend tech meetups, and participate in hackathons to expand your network.",
+        priority: "low",
       });
     }
   }

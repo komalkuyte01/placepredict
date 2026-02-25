@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Poppins, Fira_Code } from "next/font/google";
+import { Fira_Code, Poppins } from "next/font/google";
 import "./globals.css";
 
 const poppins = Poppins({

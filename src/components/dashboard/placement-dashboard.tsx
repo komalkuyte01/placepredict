@@ -1,13 +1,13 @@
 "use client";
 
 import {
+  ArrowLeft,
   Briefcase,
   CheckCircle,
-  ArrowLeft,
-  PenLine,
   ClipboardCheck,
+  PenLine,
 } from "lucide-react";
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { CandidateForm } from "@/components/forms/candidate-form";
 import { PredictionResults } from "@/components/results/prediction-results";
 import { Footer } from "@/components/shared/footer";
@@ -17,9 +17,9 @@ import {
 } from "@/lib/ml/placement-ml-engine";
 import type {
   CandidateProfile,
+  IssueItem,
   PlacementPrediction,
   ResumeParseResult,
-  IssueItem,
 } from "@/lib/types/placement";
 import { cn } from "@/lib/utils/cn";
 
@@ -34,7 +34,7 @@ interface PlacementDashboardProps {
 /**
  * Main Placement Prediction Dashboard.
  */
-export function PlacementDashboard({ 
+export function PlacementDashboard({
   onBack,
   initialProfile,
   initialParseResult,
@@ -63,7 +63,7 @@ export function PlacementDashboard({
   const handleAnalyze = useCallback(async () => {
     setIsLoading(true);
     setShowSuccessBanner(false);
-    
+
     try {
       // Check relevance of skills and certifications with Gemini
       const relevanceResponse = await fetch("/api/check-relevance", {
@@ -74,14 +74,14 @@ export function PlacementDashboard({
           certifications: profile.technical.certifications,
         }),
       });
-      
+
       const relevanceData = await relevanceResponse.json();
       setIssues(relevanceData.issues || []);
     } catch (error) {
       console.error("Error checking relevance:", error);
       setIssues([]);
     }
-    
+
     // Run ML prediction
     const result = predictPlacement(profile);
     setPrediction(result);
@@ -119,9 +119,15 @@ export function PlacementDashboard({
                 )}
                 <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-[#6e44ff]/10 flex items-center justify-center">
                   {initialProfile ? (
-                    <ClipboardCheck className="w-4 h-4 sm:w-5 sm:h-5 text-[#6e44ff]" fill="currentColor" />
+                    <ClipboardCheck
+                      className="w-4 h-4 sm:w-5 sm:h-5 text-[#6e44ff]"
+                      fill="currentColor"
+                    />
                   ) : (
-                    <PenLine className="w-4 h-4 sm:w-5 sm:h-5 text-[#6e44ff]" fill="currentColor" />
+                    <PenLine
+                      className="w-4 h-4 sm:w-5 sm:h-5 text-[#6e44ff]"
+                      fill="currentColor"
+                    />
                   )}
                 </div>
                 <span className="text-base sm:text-lg font-semibold text-gray-900">
@@ -134,36 +140,44 @@ export function PlacementDashboard({
       )}
 
       {/* Main Content */}
-      <main className={cn(
-        "max-w-6xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14 pb-10 flex-1",
-        view === "input" ? "pt-22 md:pt-24" : "pt-6"
-      )}>
+      <main
+        className={cn(
+          "max-w-6xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14 pb-10 flex-1",
+          view === "input" ? "pt-22 md:pt-24" : "pt-6",
+        )}
+      >
         {view === "input" ? (
           <div className="space-y-8">
             {/* Resume Parse Success Banner (when coming from landing page) */}
-            {showSuccessBanner && initialProfile && initialParseResult?.success && (
-              <div className="bg-[#6e44ff]/5 border border-[#6e44ff]/20 rounded-2xl p-5">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#6e44ff]/10 flex items-center justify-center flex-shrink-0">
-                    <CheckCircle className="w-5 h-5 text-[#6e44ff]" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-900">
-                      Resume parsed successfully
-                    </p>
-                    <p className="text-sm text-gray-500 mt-1">
-                      Review the extracted information below and make any corrections before proceeding.
-                    </p>
-                    {initialParseResult.missingFields && initialParseResult.missingFields.length > 0 && (
-                      <p className="text-sm text-[#6e44ff] mt-2">
-                        <span className="font-medium">Please fill manually:</span>{" "}
-                        {initialParseResult.missingFields.join(", ")}
+            {showSuccessBanner &&
+              initialProfile &&
+              initialParseResult?.success && (
+                <div className="bg-[#6e44ff]/5 border border-[#6e44ff]/20 rounded-2xl p-5">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#6e44ff]/10 flex items-center justify-center flex-shrink-0">
+                      <CheckCircle className="w-5 h-5 text-[#6e44ff]" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900">
+                        Resume parsed successfully
                       </p>
-                    )}
+                      <p className="text-sm text-gray-500 mt-1">
+                        Review the extracted information below and make any
+                        corrections before proceeding.
+                      </p>
+                      {initialParseResult.missingFields &&
+                        initialParseResult.missingFields.length > 0 && (
+                          <p className="text-sm text-[#6e44ff] mt-2">
+                            <span className="font-medium">
+                              Please fill manually:
+                            </span>{" "}
+                            {initialParseResult.missingFields.join(", ")}
+                          </p>
+                        )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
             {/* Role Selection */}
             <div className="flex justify-center">

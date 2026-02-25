@@ -1,18 +1,18 @@
 /**
- * Type declarations for ML libraries without TypeScript types.
+ * Ambient type declarations for ML libraries that lack native TypeScript types.
  */
 
 declare module "ml-logistic-regression" {
   import { Matrix } from "ml-matrix";
-  
+
   interface LogisticRegressionOptions {
     numSteps?: number;
     learningRate?: number;
   }
-  
-  // Return type can be Matrix, array, or number depending on version
+
+  /** Result may be a Matrix, number[], or scalar depending on the library version. */
   type PredictionResult = Matrix | number[] | number;
-  
+
   export default class LogisticRegression {
     constructor(options?: LogisticRegressionOptions);
     train(features: Matrix, labels: Matrix): void;
@@ -27,7 +27,7 @@ declare module "ml-random-forest" {
     replacement?: boolean;
     seed?: number;
   }
-  
+
   export class RandomForestClassifier {
     constructor(options?: RandomForestOptions);
     train(features: number[][], labels: number[]): void;
@@ -40,7 +40,7 @@ declare module "ml-knn" {
   interface KNNOptions {
     k?: number;
   }
-  
+
   export default class KNN {
     constructor(dataset: number[][], labels: number[], options?: KNNOptions);
     predict(samples: number[][]): number[];
@@ -52,12 +52,16 @@ declare module "ml-kmeans" {
     initialization?: "random" | "kmeans++";
     seed?: number;
   }
-  
+
   interface KMeansResult {
     clusters: number[];
     centroids: number[][];
     iterations: number;
   }
-  
-  export function kmeans(data: number[][], k: number, options?: KMeansOptions): KMeansResult;
+
+  export function kmeans(
+    data: number[][],
+    k: number,
+    options?: KMeansOptions,
+  ): KMeansResult;
 }

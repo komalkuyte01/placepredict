@@ -1,8 +1,15 @@
 "use client";
 
+import {
+  Briefcase,
+  Code,
+  GraduationCap,
+  Loader2,
+  MessageSquare,
+  Plus,
+  X,
+} from "lucide-react";
 import { useState } from "react";
-import { GraduationCap, Code, Briefcase, MessageSquare, Plus, X, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils/cn";
 import {
   Select,
   SelectContent,
@@ -10,11 +17,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { 
-  CandidateProfile, 
-  DegreeBranch, 
+import type {
+  CandidateProfile,
+  DegreeBranch,
   DSALevel,
 } from "@/lib/types/placement";
+import { cn } from "@/lib/utils/cn";
 
 interface CandidateFormProps {
   profile: CandidateProfile;
@@ -26,13 +34,18 @@ interface CandidateFormProps {
 /**
  * Form for entering candidate details for ML prediction.
  */
-export function CandidateForm({ profile, onProfileChange, onSubmit, isLoading = false }: CandidateFormProps) {
+export function CandidateForm({
+  profile,
+  onProfileChange,
+  onSubmit,
+  isLoading = false,
+}: CandidateFormProps) {
   const [newSkill, setNewSkill] = useState("");
   const [newCert, setNewCert] = useState("");
 
   const updateAcademic = <K extends keyof CandidateProfile["academic"]>(
     key: K,
-    value: CandidateProfile["academic"][K]
+    value: CandidateProfile["academic"][K],
   ) => {
     onProfileChange({
       ...profile,
@@ -42,7 +55,7 @@ export function CandidateForm({ profile, onProfileChange, onSubmit, isLoading = 
 
   const updateTechnical = <K extends keyof CandidateProfile["technical"]>(
     key: K,
-    value: CandidateProfile["technical"][K]
+    value: CandidateProfile["technical"][K],
   ) => {
     onProfileChange({
       ...profile,
@@ -52,7 +65,7 @@ export function CandidateForm({ profile, onProfileChange, onSubmit, isLoading = 
 
   const updateExperience = <K extends keyof CandidateProfile["experience"]>(
     key: K,
-    value: CandidateProfile["experience"][K]
+    value: CandidateProfile["experience"][K],
   ) => {
     onProfileChange({
       ...profile,
@@ -62,7 +75,7 @@ export function CandidateForm({ profile, onProfileChange, onSubmit, isLoading = 
 
   const updateSoftSkills = <K extends keyof CandidateProfile["softSkills"]>(
     key: K,
-    value: CandidateProfile["softSkills"][K]
+    value: CandidateProfile["softSkills"][K],
   ) => {
     onProfileChange({
       ...profile,
@@ -71,25 +84,43 @@ export function CandidateForm({ profile, onProfileChange, onSubmit, isLoading = 
   };
 
   const addTechnicalSkill = () => {
-    if (newSkill.trim() && !profile.technical.technicalSkills.includes(newSkill.trim())) {
-      updateTechnical("technicalSkills", [...profile.technical.technicalSkills, newSkill.trim()]);
+    if (
+      newSkill.trim() &&
+      !profile.technical.technicalSkills.includes(newSkill.trim())
+    ) {
+      updateTechnical("technicalSkills", [
+        ...profile.technical.technicalSkills,
+        newSkill.trim(),
+      ]);
       setNewSkill("");
     }
   };
 
   const removeTechnicalSkill = (skill: string) => {
-    updateTechnical("technicalSkills", profile.technical.technicalSkills.filter(s => s !== skill));
+    updateTechnical(
+      "technicalSkills",
+      profile.technical.technicalSkills.filter((s) => s !== skill),
+    );
   };
 
   const addCertification = () => {
-    if (newCert.trim() && !profile.technical.certifications.includes(newCert.trim())) {
-      updateTechnical("certifications", [...profile.technical.certifications, newCert.trim()]);
+    if (
+      newCert.trim() &&
+      !profile.technical.certifications.includes(newCert.trim())
+    ) {
+      updateTechnical("certifications", [
+        ...profile.technical.certifications,
+        newCert.trim(),
+      ]);
       setNewCert("");
     }
   };
 
   const removeCertification = (cert: string) => {
-    updateTechnical("certifications", profile.technical.certifications.filter(c => c !== cert));
+    updateTechnical(
+      "certifications",
+      profile.technical.certifications.filter((c) => c !== cert),
+    );
   };
 
   return (
@@ -107,7 +138,14 @@ export function CandidateForm({ profile, onProfileChange, onSubmit, isLoading = 
               max="10"
               step="0.1"
               value={profile.academic.cgpa ?? ""}
-              onChange={(e) => updateAcademic("cgpa", e.target.value === "" ? undefined : parseFloat(e.target.value))}
+              onChange={(e) =>
+                updateAcademic(
+                  "cgpa",
+                  e.target.value === ""
+                    ? undefined
+                    : parseFloat(e.target.value),
+                )
+              }
               className="w-full"
               placeholder="Enter CGPA"
             />
@@ -119,7 +157,12 @@ export function CandidateForm({ profile, onProfileChange, onSubmit, isLoading = 
               min="0"
               max="20"
               value={profile.academic.backlogs ?? ""}
-              onChange={(e) => updateAcademic("backlogs", e.target.value === "" ? undefined : parseInt(e.target.value))}
+              onChange={(e) =>
+                updateAcademic(
+                  "backlogs",
+                  e.target.value === "" ? undefined : parseInt(e.target.value),
+                )
+              }
               className="w-full"
               placeholder="Enter backlogs count"
             />
@@ -132,7 +175,14 @@ export function CandidateForm({ profile, onProfileChange, onSubmit, isLoading = 
               max="100"
               step="0.1"
               value={profile.academic.tenthPercentage ?? ""}
-              onChange={(e) => updateAcademic("tenthPercentage", e.target.value === "" ? undefined : parseFloat(e.target.value))}
+              onChange={(e) =>
+                updateAcademic(
+                  "tenthPercentage",
+                  e.target.value === ""
+                    ? undefined
+                    : parseFloat(e.target.value),
+                )
+              }
               className="w-full"
               placeholder="Enter 10th percentage"
             />
@@ -145,7 +195,14 @@ export function CandidateForm({ profile, onProfileChange, onSubmit, isLoading = 
               max="100"
               step="0.1"
               value={profile.academic.twelfthPercentage ?? ""}
-              onChange={(e) => updateAcademic("twelfthPercentage", e.target.value === "" ? undefined : parseFloat(e.target.value))}
+              onChange={(e) =>
+                updateAcademic(
+                  "twelfthPercentage",
+                  e.target.value === ""
+                    ? undefined
+                    : parseFloat(e.target.value),
+                )
+              }
               className="w-full"
               placeholder="Enter 12th percentage"
             />
@@ -154,14 +211,20 @@ export function CandidateForm({ profile, onProfileChange, onSubmit, isLoading = 
           <FormField label="Degree Branch">
             <Select
               value={profile.academic.degreeBranch}
-              onValueChange={(value) => updateAcademic("degreeBranch", value as DegreeBranch)}
+              onValueChange={(value) =>
+                updateAcademic("degreeBranch", value as DegreeBranch)
+              }
             >
               <SelectTrigger className="w-full h-10">
                 <SelectValue placeholder="Select branch" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Computer Science">Computer Science</SelectItem>
-                <SelectItem value="Information Technology">Information Technology</SelectItem>
+                <SelectItem value="Computer Science">
+                  Computer Science
+                </SelectItem>
+                <SelectItem value="Information Technology">
+                  Information Technology
+                </SelectItem>
                 <SelectItem value="Electronics">Electronics</SelectItem>
                 <SelectItem value="Electrical">Electrical</SelectItem>
                 <SelectItem value="Mechanical">Mechanical</SelectItem>
@@ -174,10 +237,7 @@ export function CandidateForm({ profile, onProfileChange, onSubmit, isLoading = 
       </FormSection>
 
       {/* Technical Skills Section */}
-      <FormSection
-        icon={<Code className="w-5 h-5" />}
-        title="Technical Skills"
-      >
+      <FormSection icon={<Code className="w-5 h-5" />} title="Technical Skills">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField label="Technical Skills">
             <div className="space-y-2">
@@ -199,35 +259,49 @@ export function CandidateForm({ profile, onProfileChange, onSubmit, isLoading = 
                 </button>
               </div>
               <div className="flex flex-wrap gap-2">
-                {profile.technical.technicalSkills.map((skill) => (
+                {profile.technical.technicalSkills.map((skill, index) => (
                   <span
-                    key={skill}
+                    key={`${skill}-${index}`}
                     className="inline-flex items-center gap-1 px-2 py-1 bg-[#6e44ff]/10 text-[#6e44ff] rounded-lg text-sm"
                   >
                     {skill}
-                    <button type="button" onClick={() => removeTechnicalSkill(skill)}>
+                    <button
+                      type="button"
+                      onClick={() => removeTechnicalSkill(skill)}
+                    >
                       <X className="w-3 h-3" />
                     </button>
                   </span>
                 ))}
               </div>
-              <p className="text-xs text-gray-500">Added: {profile.technical.technicalSkills.length} skills (languages, frameworks, tools, etc.)</p>
+              <p className="text-xs text-gray-500">
+                Added: {profile.technical.technicalSkills.length} skills
+                (languages, frameworks, tools, etc.)
+              </p>
             </div>
           </FormField>
 
           <FormField label="DSA Level">
             <Select
               value={profile.technical.dsaLevel}
-              onValueChange={(value) => updateTechnical("dsaLevel", value as DSALevel)}
+              onValueChange={(value) =>
+                updateTechnical("dsaLevel", value as DSALevel)
+              }
             >
               <SelectTrigger className="w-full h-10">
                 <SelectValue placeholder="Select DSA level" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="None">None</SelectItem>
-                <SelectItem value="Basic">Basic (Arrays, Strings, Sorting)</SelectItem>
-                <SelectItem value="Intermediate">Intermediate (Trees, Graphs, DP)</SelectItem>
-                <SelectItem value="Advanced">Advanced (DP, Segment Trees)</SelectItem>
+                <SelectItem value="Basic">
+                  Basic (Arrays, Strings, Sorting)
+                </SelectItem>
+                <SelectItem value="Intermediate">
+                  Intermediate (Trees, Graphs, DP)
+                </SelectItem>
+                <SelectItem value="Advanced">
+                  Advanced (DP, Segment Trees)
+                </SelectItem>
               </SelectContent>
             </Select>
           </FormField>
@@ -238,7 +312,12 @@ export function CandidateForm({ profile, onProfileChange, onSubmit, isLoading = 
               min="0"
               max="20"
               value={profile.technical.projectsCount ?? ""}
-              onChange={(e) => updateTechnical("projectsCount", e.target.value === "" ? undefined : parseInt(e.target.value))}
+              onChange={(e) =>
+                updateTechnical(
+                  "projectsCount",
+                  e.target.value === "" ? undefined : parseInt(e.target.value),
+                )
+              }
               className="w-full"
               placeholder="Enter projects count"
             />
@@ -264,19 +343,24 @@ export function CandidateForm({ profile, onProfileChange, onSubmit, isLoading = 
                 </button>
               </div>
               <div className="flex flex-wrap gap-2">
-                {profile.technical.certifications.map((cert) => (
+                {profile.technical.certifications.map((cert, index) => (
                   <span
-                    key={cert}
+                    key={`${cert}-${index}`}
                     className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-sm"
                   >
                     {cert}
-                    <button type="button" onClick={() => removeCertification(cert)}>
+                    <button
+                      type="button"
+                      onClick={() => removeCertification(cert)}
+                    >
                       <X className="w-3 h-3" />
                     </button>
                   </span>
                 ))}
               </div>
-              <p className="text-xs text-gray-500">Added: {profile.technical.certifications.length} certifications</p>
+              <p className="text-xs text-gray-500">
+                Added: {profile.technical.certifications.length} certifications
+              </p>
             </div>
           </FormField>
 
@@ -286,9 +370,14 @@ export function CandidateForm({ profile, onProfileChange, onSubmit, isLoading = 
                 type="checkbox"
                 id="hasInternship"
                 checked={profile.technical.hasInternship}
-                onChange={(e) => updateTechnical("hasInternship", e.target.checked)}
+                onChange={(e) =>
+                  updateTechnical("hasInternship", e.target.checked)
+                }
               />
-              <label htmlFor="hasInternship" className="text-sm text-[hsl(240,3.8%,46.1%)]">
+              <label
+                htmlFor="hasInternship"
+                className="text-sm text-[hsl(240,3.8%,46.1%)]"
+              >
                 Yes, I have completed at least one internship
               </label>
             </div>
@@ -308,7 +397,12 @@ export function CandidateForm({ profile, onProfileChange, onSubmit, isLoading = 
               min="0"
               max="20"
               value={profile.experience.hackathonsCount ?? ""}
-              onChange={(e) => updateExperience("hackathonsCount", e.target.value === "" ? undefined : parseInt(e.target.value))}
+              onChange={(e) =>
+                updateExperience(
+                  "hackathonsCount",
+                  e.target.value === "" ? undefined : parseInt(e.target.value),
+                )
+              }
               className="w-full"
               placeholder="Enter hackathons count"
             />
@@ -320,9 +414,17 @@ export function CandidateForm({ profile, onProfileChange, onSubmit, isLoading = 
                 type="checkbox"
                 id="hasOpenSource"
                 checked={profile.experience.hasOpenSourceContributions}
-                onChange={(e) => updateExperience("hasOpenSourceContributions", e.target.checked)}
+                onChange={(e) =>
+                  updateExperience(
+                    "hasOpenSourceContributions",
+                    e.target.checked,
+                  )
+                }
               />
-              <label htmlFor="hasOpenSource" className="text-sm text-[hsl(240,3.8%,46.1%)]">
+              <label
+                htmlFor="hasOpenSource"
+                className="text-sm text-[hsl(240,3.8%,46.1%)]"
+              >
                 Yes, I have contributed to open source
               </label>
             </div>
@@ -335,15 +437,21 @@ export function CandidateForm({ profile, onProfileChange, onSubmit, isLoading = 
                 min="0"
                 max="100"
                 value={profile.experience.resumeATSScore}
-                onChange={(e) => updateExperience("resumeATSScore", parseInt(e.target.value))}
+                onChange={(e) =>
+                  updateExperience("resumeATSScore", parseInt(e.target.value))
+                }
                 className="w-full"
               />
               <div className="flex justify-between text-xs text-gray-500">
                 <span>Poor</span>
-                <span className="font-medium">{profile.experience.resumeATSScore}</span>
+                <span className="font-medium">
+                  {profile.experience.resumeATSScore}
+                </span>
                 <span>Excellent</span>
               </div>
-              <p className="text-xs text-gray-400">Auto-calculated by AI if resume is uploaded</p>
+              <p className="text-xs text-gray-400">
+                Auto-calculated by AI if resume is uploaded
+              </p>
             </div>
           </FormField>
         </div>
@@ -362,12 +470,16 @@ export function CandidateForm({ profile, onProfileChange, onSubmit, isLoading = 
                 min="0"
                 max="100"
                 value={profile.softSkills.aptitudeScore}
-                onChange={(e) => updateSoftSkills("aptitudeScore", parseInt(e.target.value))}
+                onChange={(e) =>
+                  updateSoftSkills("aptitudeScore", parseInt(e.target.value))
+                }
                 className="w-full"
               />
               <div className="flex justify-between text-xs text-gray-500">
                 <span>0</span>
-                <span className="font-medium">{profile.softSkills.aptitudeScore}%</span>
+                <span className="font-medium">
+                  {profile.softSkills.aptitudeScore}%
+                </span>
                 <span>100</span>
               </div>
             </div>
@@ -411,7 +523,7 @@ export function CandidateForm({ profile, onProfileChange, onSubmit, isLoading = 
             "hover:bg-[hsl(240,5.9%,20%)]",
             "transition-colors",
             "disabled:opacity-70 disabled:cursor-not-allowed",
-            "flex items-center gap-2"
+            "flex items-center gap-2",
           )}
         >
           {isLoading ? (
