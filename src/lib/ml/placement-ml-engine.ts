@@ -6,11 +6,9 @@
  * a candidate's placement probability for Software Developer roles.
  */
 
-import { kmeans } from "ml-kmeans";
 import KNN from "ml-knn";
 import LogisticRegression from "ml-logistic-regression";
 import { Matrix } from "ml-matrix";
-import { PCA } from "ml-pca";
 import { RandomForestClassifier } from "ml-random-forest";
 import placementTrainingData from "@/lib/ml/placement-training-data.json";
 import type {
@@ -143,14 +141,12 @@ interface TrainedModels {
   logisticRegression: unknown;
   randomForest: unknown;
   knn: unknown;
-  pca: PCA;
   featureImportance: number[];
   featureNames: string[];
   normalization: { mins: number[]; maxs: number[] };
-  clusters?: { centroids: number[][]; assignments: number[] };
 }
 
-/** Trains Logistic Regression, Random Forest, KNN, PCA, and K-Means on the given data. */
+/** Trains Logistic Regression, Random Forest, and KNN on the given data. */
 export function trainModels(trainingData: TrainingDataPoint[]): TrainedModels {
   const features = trainingData.map((d) => d.features);
   const labels = trainingData.map((d) => d.label);
@@ -177,9 +173,6 @@ export function trainModels(trainingData: TrainingDataPoint[]): TrainedModels {
   // Train KNN
   const knn = new KNN(normalized, labels, { k: 5 });
 
-  // PCA for analysis
-  const pca = new PCA(normalized);
-
   // Calculate feature importance
   const featureImportance = calculateFeatureImportance(
     randomForest,
@@ -187,21 +180,13 @@ export function trainModels(trainingData: TrainingDataPoint[]): TrainedModels {
     labels,
   );
 
-  // K-Means clustering
-  const clusterResult = kmeans(normalized, 4, { initialization: "kmeans++" });
-
   return {
     logisticRegression,
     randomForest,
     knn,
-    pca,
     featureImportance,
     featureNames: FEATURE_NAMES,
     normalization: { mins, maxs },
-    clusters: {
-      centroids: clusterResult.centroids,
-      assignments: clusterResult.clusters,
-    },
   };
 }
 
@@ -958,94 +943,4 @@ export function createEmptyProfile(): CandidateProfile {
   };
 }
 
-/** Assigns the candidate to a peer cluster and returns a description and recommendation. */
-export function analyzeCandidateCluster(profile: CandidateProfile) {
-  const models = getTrainedModels();
-  const features = extractFeatures(profile);
 
-  const normalized = features.map((val, i) => {
-    const min = models.normalization.mins[i] ?? 0;
-    const max = models.normalization.maxs[i] ?? 1;
-    return max === min ? 0.5 : (val - min) / (max - min);
-  });
-
-  if (!models.clusters) {
-    return {
-      cluster: 0,
-      description: "Analysis unavailable",
-      recommendation: "",
-    };
-  }
-
-  let nearestCluster = 0;
-  let minDistance = Infinity;
-
-  for (let c = 0; c < models.clusters.centroids.length; c++) {
-    const centroid = models.clusters.centroids[c];
-    if (!centroid) continue;
-
-    let distance = 0;
-    for (let i = 0; i < normalized.length; i++) {
-      distance += ((normalized[i] ?? 0) - (centroid[i] ?? 0)) ** 2;
-    }
-    distance = Math.sqrt(distance);
-
-    if (distance < minDistance) {
-      minDistance = distance;
-      nearestCluster = c;
-    }
-  }
-
-  const descriptions = [
-    "High Performers - Strong academics and technical skills",
-    "Technical Specialists - Good coding but needs soft skills",
-    "Well-Rounded - Balanced profile, strengthen weakest areas",
-    "Needs Development - Focus on building core competencies",
-  ];
-
-  const recommendations = [
-    "Target top-tier companies, focus on system design",
-    "Practice communication and mock interviews",
-    "Identify and strengthen your weakest area",
-    "Build foundational skills first - DSA, one strong project",
-  ];
-
-  return {
-    cluster: nearestCluster,
-    description: descriptions[nearestCluster] ?? "Unknown",
-    recommendation: recommendations[nearestCluster] ?? "",
-  };
-}
-
-/** Projects the candidate's profile into the top 3 principal components for analysis. */
-export function getPCAInsights(profile: CandidateProfile) {
-  const models = getTrainedModels();
-  const features = extractFeatures(profile);
-
-  const normalized = features.map((val, i) => {
-    const min = models.normalization.mins[i] ?? 0;
-    const max = models.normalization.maxs[i] ?? 1;
-    return max === min ? 0.5 : (val - min) / (max - min);
-  });
-
-  const transformed = models.pca.predict([normalized]);
-  const variance = models.pca.getExplainedVariance();
-
-  const topComponents = transformed.to2DArray()[0]?.slice(0, 3) ?? [0, 0, 0];
-  const topVariance = variance.slice(0, 3);
-
-  let interpretation = "";
-  if (topComponents[0]! > 0.5) {
-    interpretation = "Strong overall competency (high PC1)";
-  } else if (topComponents[0]! < -0.5) {
-    interpretation = "Focus on improving core metrics";
-  } else {
-    interpretation = "Average profile - targeted improvements can help";
-  }
-
-  return {
-    principalComponents: topComponents.map((v) => Math.round(v * 100) / 100),
-    varianceExplained: topVariance.map((v) => Math.round(v * 100)),
-    interpretation,
-  };
-}

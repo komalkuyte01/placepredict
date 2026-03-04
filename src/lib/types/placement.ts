@@ -213,21 +213,3 @@ export interface RadarDataPoint {
   current: number;
   ideal: number;
 }
-
-/**
- * Cluster analysis result.
- */
-export interface ClusterAnalysis {
-  cluster: number;
-  description: string;
-  recommendation: string;
-}
-
-/**
- * PCA analysis insights.
- */
-export interface PCAInsights {
-  principalComponents: number[];
-  varianceExplained: number[];
-  interpretation: string;
-}

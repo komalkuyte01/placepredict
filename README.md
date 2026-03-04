@@ -47,8 +47,7 @@ A student simply uploads their resume or fills in their profile, and the system:
 | **Frontend** | Next.js 16, React 19 | Server-rendered, fast & interactive UI |
 | **Styling** | Tailwind CSS 4 | Modern, responsive design system |
 | **AI / NLP** | Google Gemini API | Resume parsing & AI-powered suggestions |
-| **ML Models** | ml-random-forest, ml-logistic-regression, ml-knn | Placement probability prediction |
-| **Data Science** | ml-pca, ml-kmeans, ml-matrix | Feature analysis, clustering & dimensionality reduction |
+| **ML Models** | ml-random-forest, ml-logistic-regression, ml-knn, ml-matrix | Placement probability prediction |
 | **Charts** | Recharts | Interactive data visualizations |
 | **PDF Parsing** | pdf-parse | Extracting text from uploaded resumes |
 | **Linting** | Biome | Code quality & formatting |

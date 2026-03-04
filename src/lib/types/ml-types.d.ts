@@ -46,22 +46,3 @@ declare module "ml-knn" {
     predict(samples: number[][]): number[];
   }
 }
-
-declare module "ml-kmeans" {
-  interface KMeansOptions {
-    initialization?: "random" | "kmeans++";
-    seed?: number;
-  }
-
-  interface KMeansResult {
-    clusters: number[];
-    centroids: number[][];
-    iterations: number;
-  }
-
-  export function kmeans(
-    data: number[][],
-    k: number,
-    options?: KMeansOptions,
-  ): KMeansResult;
-}
