@@ -23,7 +23,7 @@
 
 A student simply uploads their resume or fills in their profile, and the system:
 1. **Reads the resume** using Google Gemini AI — just like a human recruiter would.
-2. **Predicts placement probability** using Machine Learning algorithms trained on candidate data.
+2. **Predicts placement probability** using a Random Forest + Logistic Regression ML ensemble trained on candidate data.
 3. **Provides personalized feedback** — highlighting strengths, weaknesses, and an actionable improvement plan.
 
 ---
@@ -33,7 +33,9 @@ A student simply uploads their resume or fills in their profile, and the system:
 | Feature | Description |
 |---|---|
 | 📄 **AI Resume Parsing** | Upload a PDF resume — Gemini AI extracts skills, GPA, experience automatically |
-| 📊 **ML Prediction Engine** | Ensemble of Logistic Regression, Random Forest & KNN models |
+| 📊 **ML Prediction Engine** | Ensemble of Random Forest (70%) + Logistic Regression (30%) |
+| 🧠 **Engineered Rule Signals** | Adds 4 binary threshold features (e.g., CGPA < 7.5) directly into the feature vector |
+| 🧪 **Cross-Validation Metrics** | Reports 5-fold CV metrics (accuracy, precision, recall, F1) in model insights |
 | 💡 **Smart Feedback** | Strengths, weaknesses, and prioritized improvement suggestions |
 | 📈 **Feature Contributions** | Visual breakdown of which factors impact placement the most |
 | 📱 **Fully Responsive** | Works seamlessly on mobile, tablet, and desktop |
@@ -47,11 +49,11 @@ A student simply uploads their resume or fills in their profile, and the system:
 | **Frontend** | Next.js 16, React 19 | Server-rendered, fast & interactive UI |
 | **Styling** | Tailwind CSS 4 | Modern, responsive design system |
 | **AI / NLP** | Google Gemini API | Resume parsing & AI-powered suggestions |
-| **ML Models** | ml-random-forest, ml-logistic-regression, ml-knn, ml-matrix | Placement probability prediction |
+| **ML Models** | ml-random-forest, ml-logistic-regression, ml-matrix | Placement probability prediction |
 | **Charts** | Recharts | Interactive data visualizations |
 | **PDF Parsing** | pdf-parse | Extracting text from uploaded resumes |
 | **Linting** | Biome | Code quality & formatting |
-| **Package Manager** | Bun | Fast dependency management & script runner |
+| **Runtime / Package Manager** | Node.js + npm (Bun optional) | Dependency management & script runner |
 
 ---
 
@@ -66,6 +68,7 @@ gradesight/
 │   │   ├── page.tsx                # Home page
 │   │   ├── globals.css             # Global styles & Tailwind config
 │   │   └── api/                    # Backend API routes
+│   │       ├── predict/            # Placement prediction endpoint
 │   │       ├── parse-resume/       # Gemini AI resume parsing endpoint
 │   │       ├── ai-suggestions/     # AI-generated improvement suggestions
 │   │       └── check-relevance/    # Resume relevance scoring
@@ -95,7 +98,9 @@ gradesight/
 
 ### Prerequisites
 
-- [Bun](https://bun.sh/) v1.0+ (or Node.js 18+)
+- Node.js 18+
+- npm 9+
+- (Optional) [Bun](https://bun.sh/) v1.0+
 - A [Google Gemini API Key](https://aistudio.google.com/apikey)
 
 ### Installation
@@ -106,20 +111,17 @@ git clone <repository-url>
 cd gradesight
 
 # 2. Install dependencies
-bun install
-
-# 3. Set up environment variables
-cp .env.example .env.local
+npm install
 ```
 
-Add your API key to `.env.local`:
+Create a `.env.local` file in the project root and add:
 ```env
 GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
 ```bash
 # 4. Start the development server
-bun run dev
+npm run dev
 ```
 
 Open **[http://localhost:3000](http://localhost:3000)** in your browser.
@@ -135,14 +137,42 @@ Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 
 ---
 
+## 🤖 ML Pipeline (Current)
+
+The current prediction flow in `src/lib/ml/placement-ml-engine.ts` is:
+
+1. Build a **21-feature vector**:
+  - 17 base features (academics, technical, experience, soft skills)
+  - 4 engineered binary flags:
+    - `Is CGPA Below 7.5`
+    - `Is 12th Below 60%`
+    - `Is Skills Below 5`
+    - `Is Projects Below 2`
+2. Apply **min-max normalization** (clamped to `[0, 1]` for inference safety).
+3. Train models using **5-fold cross-validation** for metrics:
+  - Random Forest
+  - Logistic Regression
+4. Train final models on full data and predict with a weighted ensemble:
+  - `RF * 0.7 + LR * 0.3`
+5. Return:
+  - probability (0–100)
+  - risk category
+  - strengths/weaknesses/suggestions
+  - feature importance
+  - CV metrics (`modelInsights.cvMetrics`)
+
+> Note: The bundled training data is synthetic/prototype data and should not be treated as production ground truth.
+
+---
+
 ## 🧪 Available Scripts
 
 | Command | Description |
 |---|---|
-| `bun run dev` | Start development server |
-| `bun run build` | Create production build |
-| `bun run start` | Start production server |
-| `bun run lint` | Run Biome linter |
-| `bun run format` | Format code with Biome |
+| `npm run dev` | Start development server |
+| `npm run build` | Create production build |
+| `npm run start` | Start production server |
+| `npm run lint` | Run Biome linter |
+| `npm run format` | Format code with Biome |
 
 ---

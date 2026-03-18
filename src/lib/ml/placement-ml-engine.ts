@@ -6,7 +6,6 @@
  * a candidate's placement probability for Software Developer roles.
  */
 
-import KNN from "ml-knn";
 import LogisticRegression from "ml-logistic-regression";
 import { Matrix } from "ml-matrix";
 import { RandomForestClassifier } from "ml-random-forest";
@@ -49,6 +48,10 @@ const FEATURE_NAMES = [
   "Communication",
   "Mock Interview",
   "English Fluency",
+  "Is CGPA Below 7.5",
+  "Is 12th Below 60%",
+  "Is Skills Below 5",
+  "Is Projects Below 2",
 ];
 
 /** Maps DSA proficiency level to a numeric scale (0–3). */
@@ -62,9 +65,33 @@ function dsaToNumeric(dsa: DSALevel): number {
   return map[dsa];
 }
 
-/** Extracts a 17-dimensional numeric feature vector from a candidate profile. */
-export function extractFeatures(profile: CandidateProfile): number[] {
+/**
+ * Takes the base 17 features (from generated data or profile) and applies 
+ * hard-coded business rules (like low CGPA) as binary features so the ML 
+ * models can natively learn to penalize them.
+ */
+function transformFeaturesIteratively(features: number[]): number[] {
+  const cgpa = features[0] ?? 0;
+  const isCgpaBelow75 = cgpa > 0 && cgpa < 7.5 ? 1 : 0;
+  const twelfthPct = features[3] ?? 0;
+  const isTwelfthBelow60 = twelfthPct > 0 && twelfthPct < 60 ? 1 : 0;
+  const skillCount = features[5] ?? 0;
+  const isSkillsBelow5 = skillCount < 5 ? 1 : 0;
+  const projectCount = features[7] ?? 0;
+  const isProjectsBelow2 = projectCount < 2 ? 1 : 0;
+
   return [
+    ...features,
+    isCgpaBelow75,
+    isTwelfthBelow60,
+    isSkillsBelow5,
+    isProjectsBelow2,
+  ];
+}
+
+/** Extracts a 21-dimensional numeric feature vector from a candidate profile. */
+export function extractFeatures(profile: CandidateProfile): number[] {
+  const baseFeatures = [
     profile.academic.cgpa ?? 0,
     profile.academic.backlogs ?? 0,
     profile.academic.tenthPercentage ?? 0,
@@ -87,6 +114,8 @@ export function extractFeatures(profile: CandidateProfile): number[] {
     profile.softSkills.mockInterviewScore,
     profile.softSkills.englishFluency,
   ];
+
+  return transformFeaturesIteratively(baseFeatures);
 }
 
 /** Applies min-max normalization to a feature matrix. */
@@ -130,63 +159,109 @@ function normalizeFeatures(
 export function generateTrainingData(): TrainingDataPoint[] {
   return (placementTrainingData as { features: number[]; label: number }[]).map(
     (d) => ({
-      features: d.features,
+      features: transformFeaturesIteratively(d.features),
       label: d.label,
     }),
   );
 }
 
 /** Container holding all trained model instances and normalization metadata. */
+export interface EvaluationMetrics {
+  accuracy: number;
+  precision: number;
+  recall: number;
+  f1: number;
+}
+
 interface TrainedModels {
   logisticRegression: unknown;
   randomForest: unknown;
-  knn: unknown;
   featureImportance: number[];
   featureNames: string[];
   normalization: { mins: number[]; maxs: number[] };
+  cvMetrics: {
+    lr: EvaluationMetrics;
+    rf: EvaluationMetrics;
+    ensemble: EvaluationMetrics;
+  };
 }
 
-/** Trains Logistic Regression, Random Forest, and KNN on the given data. */
+/** Trains Logistic Regression and Random Forest using 5-Fold CV, then retrains on full dataset. */
 export function trainModels(trainingData: TrainingDataPoint[]): TrainedModels {
-  const features = trainingData.map((d) => d.features);
-  const labels = trainingData.map((d) => d.label);
+  const shuffled = [...trainingData].sort(() => Math.random() - 0.5);
+  const kFolds = 5;
+  const foldSize = Math.floor(shuffled.length / kFolds);
 
-  const { normalized, mins, maxs } = normalizeFeatures(features);
+  let lrMetricsSum = { accuracy: 0, precision: 0, recall: 0, f1: 0 };
+  let rfMetricsSum = { accuracy: 0, precision: 0, recall: 0, f1: 0 };
+  let ensMetricsSum = { accuracy: 0, precision: 0, recall: 0, f1: 0 };
 
-  // Train Logistic Regression
-  const lrFeatures = new Matrix(normalized);
-  const logisticRegression = new LogisticRegression({
-    numSteps: 1000,
-    learningRate: 0.1,
-  });
-  logisticRegression.train(lrFeatures, Matrix.columnVector(labels));
+  // 1. Cross-Validation Phase for accurate reporting
+  for (let k = 0; k < kFolds; k++) {
+    const testStart = k * foldSize;
+    const testEnd = k === kFolds - 1 ? shuffled.length : testStart + foldSize;
+    
+    const testSplit = shuffled.slice(testStart, testEnd);
+    const trainSplit = [...shuffled.slice(0, testStart), ...shuffled.slice(testEnd)];
 
-  // Train Random Forest
-  const randomForest = new RandomForestClassifier({
-    nEstimators: 50,
-    maxFeatures: 0.8,
-    replacement: true,
-    seed: 42,
-  });
-  randomForest.train(normalized, labels);
+    const { normalized: normTrainFeatures, mins, maxs } = normalizeFeatures(trainSplit.map(d => d.features));
+    const trainLabels = trainSplit.map((d) => d.label);
 
-  // Train KNN
-  const knn = new KNN(normalized, labels, { k: 5 });
+    const lr = new LogisticRegression({ numSteps: 500, learningRate: 0.1 });
+    lr.train(new Matrix(normTrainFeatures), Matrix.columnVector(trainLabels));
 
-  // Calculate feature importance
-  const featureImportance = calculateFeatureImportance(
-    randomForest,
-    normalized,
-    labels,
-  );
+    const rf = new RandomForestClassifier({ nEstimators: 30, maxFeatures: 0.8, replacement: true, seed: 42 });
+    rf.train(normTrainFeatures, trainLabels);
+
+    const normTestFeatures = testSplit.map(d => normalizeSingleFeature(d.features, mins, maxs));
+    const testLabels = testSplit.map(d => d.label);
+
+    const lrPreds = getLogisticPositiveProbabilities(lr, normTestFeatures).map(
+      (p) => (p >= 0.5 ? 1 : 0),
+    );
+    const rfPreds = (rf as any).predictProbability(normTestFeatures, 1).map((p: number) => p >= 0.5 ? 1 : 0);
+    const ensPreds = normTestFeatures.map((f) => {
+      const lrProb = getLogisticPositiveProbabilities(lr, [f])[0] ?? 0;
+      const rfProb = (rf as any).predictProbability([f], 1)[0];
+      return (rfProb * 0.7 + lrProb * 0.3) >= 0.5 ? 1 : 0;
+    });
+
+    const mLR = calculateMetrics(lrPreds, testLabels);
+    const mRF = calculateMetrics(rfPreds, testLabels);
+    const mEns = calculateMetrics(ensPreds, testLabels);
+
+    lrMetricsSum = { accuracy: lrMetricsSum.accuracy + mLR.accuracy, precision: lrMetricsSum.precision + mLR.precision, recall: lrMetricsSum.recall + mLR.recall, f1: lrMetricsSum.f1 + mLR.f1 };
+    rfMetricsSum = { accuracy: rfMetricsSum.accuracy + mRF.accuracy, precision: rfMetricsSum.precision + mRF.precision, recall: rfMetricsSum.recall + mRF.recall, f1: rfMetricsSum.f1 + mRF.f1 };
+    ensMetricsSum = { accuracy: ensMetricsSum.accuracy + mEns.accuracy, precision: ensMetricsSum.precision + mEns.precision, recall: ensMetricsSum.recall + mEns.recall, f1: ensMetricsSum.f1 + mEns.f1 };
+  }
+
+  // Average metrics
+  const cvMetrics = {
+    lr: { accuracy: lrMetricsSum.accuracy / kFolds, precision: lrMetricsSum.precision / kFolds, recall: lrMetricsSum.recall / kFolds, f1: lrMetricsSum.f1 / kFolds },
+    rf: { accuracy: rfMetricsSum.accuracy / kFolds, precision: rfMetricsSum.precision / kFolds, recall: rfMetricsSum.recall / kFolds, f1: rfMetricsSum.f1 / kFolds },
+    ensemble: { accuracy: ensMetricsSum.accuracy / kFolds, precision: ensMetricsSum.precision / kFolds, recall: ensMetricsSum.recall / kFolds, f1: ensMetricsSum.f1 / kFolds }
+  };
+
+  // 2. Train Final Model on 100% Data
+  const fullFeatures = trainingData.map(d => d.features);
+  const fullLabels = trainingData.map(d => d.label);
+  const { normalized: normFullFeatures, mins: fullMins, maxs: fullMaxs } = normalizeFeatures(fullFeatures);
+
+  const finalLr = new LogisticRegression({ numSteps: 1000, learningRate: 0.1 });
+  finalLr.train(new Matrix(normFullFeatures), Matrix.columnVector(fullLabels));
+
+  const finalRf = new RandomForestClassifier({ nEstimators: 50, maxFeatures: 0.8, replacement: true, seed: 42 });
+  finalRf.train(normFullFeatures, fullLabels);
+
+  const featureImportance = calculateFeatureImportance(finalRf, normFullFeatures, fullLabels);
 
   return {
-    logisticRegression,
-    randomForest,
-    knn,
+    logisticRegression: finalLr,
+    randomForest: finalRf,
     featureImportance,
     featureNames: FEATURE_NAMES,
-    normalization: { mins, maxs },
+    normalization: { mins: fullMins, maxs: fullMaxs },
+    cvMetrics
   };
 }
 
@@ -237,6 +312,61 @@ function calculateAccuracy(
     if (predictions[i] === labels[i]) correct++;
   }
   return correct / labels.length;
+}
+
+/** General purpose evaluation metrics generator (Precision, Recall, F1). */
+function calculateMetrics(predictions: number[], labels: number[]): EvaluationMetrics {
+  let tp = 0, tn = 0, fp = 0, fn = 0;
+  for (let i = 0; i < labels.length; i++) {
+    if (predictions[i] === 1 && labels[i] === 1) tp++;
+    else if (predictions[i] === 0 && labels[i] === 0) tn++;
+    else if (predictions[i] === 1 && labels[i] === 0) fp++;
+    else if (predictions[i] === 0 && labels[i] === 1) fn++;
+  }
+  const accuracy = (tp + tn) / labels.length;
+  const precision = tp + fp > 0 ? tp / (tp + fp) : 0;
+  const recall = tp + fn > 0 ? tp / (tp + fn) : 0;
+  const f1 = precision + recall > 0 ? 2 * (precision * recall) / (precision + recall) : 0;
+  return { accuracy, precision, recall, f1 };
+}
+
+/**
+ * Computes probability of the positive class (label=1) for ml-logistic-regression.
+ *
+ * The installed package exposes `testScores` on internal one-vs-all classifiers,
+ * not on the outer LogisticRegression instance.
+ */
+function getLogisticPositiveProbabilities(
+  model: unknown,
+  features: number[][],
+): number[] {
+  const matrix = new Matrix(features);
+  const lrModel = model as {
+    classifiers?: Array<{
+      testScores?: (x: Matrix) => number[];
+    }>;
+    predict?: (x: Matrix) => number[];
+  };
+
+  const class0Scores = lrModel.classifiers?.[0]?.testScores?.(matrix);
+  const class1Scores = lrModel.classifiers?.[1]?.testScores?.(matrix);
+
+  // For this library, class 0 one-vs-all score approximates P(label=1).
+  if (class0Scores && class1Scores) {
+    return class0Scores.map((s0, i) => {
+      const s1 = class1Scores[i] ?? 0;
+      const p = (s0 + (1 - s1)) / 2;
+      return Math.max(0, Math.min(1, p));
+    });
+  }
+
+  if (class0Scores) {
+    return class0Scores.map((p) => Math.max(0, Math.min(1, p)));
+  }
+
+  // Fallback: if scores are unavailable, use hard predictions as 0/1 probabilities.
+  const labels = lrModel.predict?.(matrix) ?? [];
+  return labels.map((label) => (label === 1 ? 1 : 0));
 }
 
 /** Cached singleton — models are trained once and reused for all predictions. */
@@ -293,34 +423,8 @@ export const SOFTWARE_DEVELOPER_CRITERIA: RoleCriteria = {
 };
 
 /**
- * Feature weights: downweight academics, upweight technical/experience.
- * Indices: 0=CGPA, 1=Backlogs, 2=10th%, 3=12th%, 4=Branch,
- *          5=Skills, 6=DSA, 7=Projects, 8=Internship, 9=Certs,
- *         10=Hackathons, 11=OpenSource, 12=ATS, 13=Aptitude,
- *         14=Communication, 15=MockInterview, 16=English
- */
-const FEATURE_WEIGHTS = [
-  0.3,  // CGPA              — low priority
-  0.5,  // Backlogs          — moderate (penalty)
-  0.1,  // 10th Percentage   — very low priority
-  0.1,  // 12th Percentage   — very low priority
-  0.4,  // Branch Relevance  — low-moderate
-  2.0,  // Technical Skills  — HIGH priority
-  1.6,  // DSA Level         — HIGH priority
-  2.0,  // Projects Count    — HIGH priority
-  2.0,  // Has Internship    — HIGH priority
-  1.2,  // Certifications    — medium priority
-  1.2,  // Hackathons        — medium priority
-  1.5,  // Open Source       — HIGH priority
-  0.8,  // Resume ATS Score  — moderate
-  0.6,  // Aptitude Score    — moderate
-  1.0,  // Communication     — medium priority
-  0.8,  // Mock Interview    — moderate
-  0.6,  // English Fluency   — moderate
-];
-
-/**
- * Normalizes a single feature vector and applies feature weighting.
+ * Normalizes a single feature vector without any manual weighting,
+ * clamping out-of-range inputs to [0, 1] bounds.
  */
 function normalizeSingleFeature(
   features: number[],
@@ -331,13 +435,14 @@ function normalizeSingleFeature(
     const min = mins[j] ?? 0;
     const max = maxs[j] ?? 1;
     const normalized = max === min ? 0.5 : (val - min) / (max - min);
-    return normalized * (FEATURE_WEIGHTS[j] ?? 1.0);
+    // Clamp to [0, 1] to prevent new users from breaking the distribution
+    return Math.max(0, Math.min(1, normalized));
   });
 }
 
 /**
  * Main prediction function using ML ensemble.
- * Uses a weighted ensemble: Random Forest (50%), KNN (25%), Logistic Regression (25%).
+ * Uses a weighted ensemble: Random Forest (70%) and Logistic Regression (30%).
  */
 export function predictPlacement(
   profile: CandidateProfile,
@@ -354,53 +459,21 @@ export function predictPlacement(
     models.normalization.maxs,
   );
 
-  // Run predictions through each model
-  const rfPrediction =
-    (models.randomForest as { predict: (x: number[][]) => number[] }).predict([
-      normalizedFeatures,
-    ])[0] ?? 0;
-  const knnPrediction =
-    (models.knn as { predict: (x: number[][]) => number[] }).predict([
-      normalizedFeatures,
-    ])[0] ?? 0;
-  const lrPrediction =
-    (models.logisticRegression as { predict: (x: Matrix) => number[] }).predict(
-      new Matrix([normalizedFeatures]),
-    )[0] ?? 0;
+  // Run predictions through each model to get PROBABILITIES (0.0 to 1.0)
+  const rfProbs = (models.randomForest as any).predictProbability([normalizedFeatures], 1);
+  const rfPrediction = rfProbs[0] ?? 0;
 
-  // Weighted ensemble: RF 50%, KNN 25%, LR 25%
-  // ensembleScore will be one of: 0, 0.25, 0.5, 0.75, or 1.0
-  const ensembleScore =
-    rfPrediction * 0.5 + knnPrediction * 0.25 + lrPrediction * 0.25;
+  const lrProbs = getLogisticPositiveProbabilities(models.logisticRegression, [
+    normalizedFeatures,
+  ]);
+  const lrPrediction = lrProbs[0] ?? 0;
 
-  // The ensemble determines the probability band (primary signal)
-  // The heuristic adds granularity within that band (secondary signal)
-  // This ensures ML models drive the prediction, not the heuristic
-  const baseFromEnsemble = ensembleScore * 70; // 0, 17.5, 35, 52.5, or 70
-  const heuristicProbability = calculateRealProbability(profile);
-  const heuristicBonus = (heuristicProbability / 100) * 30; // 0-30 granularity
-  let probability = baseFromEnsemble + heuristicBonus;
+  // Weighted ensemble: RF 70%, LR 30%
+  // ensembleScore is a true continuous probability between 0 and 1
+  const ensembleScore = rfPrediction * 0.7 + lrPrediction * 0.3;
 
-  // ── Eligibility penalties ──
-  // Most companies enforce hard cutoffs on these criteria.
-  // Failing them drastically reduces placement chances.
-  const cgpa = profile.academic.cgpa ?? 0;
-  const twelfthPct = profile.academic.twelfthPercentage ?? 0;
-  const skillCount = profile.technical.technicalSkills.length;
-  const projectCount = profile.technical.projectsCount ?? 0;
-
-  if (cgpa > 0 && cgpa < 7.5) {
-    probability *= 0.3; // Most companies require 7.5+ CGPA
-  }
-  if (twelfthPct > 0 && twelfthPct < 60) {
-    probability *= 0.2; // 60% in 12th is a common minimum
-  }
-  if (skillCount < 5) {
-    probability *= 0.3; // Fewer than 5 skills is a major red flag
-  }
-  if (projectCount < 2) {
-    probability *= 0.3; // Companies expect at least 2-3 projects
-  }
+  // Convert to 0-100 percentage
+  const probability = ensembleScore * 100;
 
   // Calculate contributions
   const contributions = calculateSimpleContributions(profile);
@@ -423,107 +496,13 @@ export function predictPlacement(
     modelInsights: {
       logisticRegressionProb: lrPrediction * 100,
       randomForestProb: rfPrediction * 100,
-      knnPrediction,
       featureImportance: models.featureImportance.map((imp, i) => ({
         feature: FEATURE_NAMES[i] ?? `Feature ${i}`,
         importance: imp,
       })),
+      cvMetrics: models.cvMetrics as any,
     },
   };
-}
-
-/**
- * Heuristic probability scoring.
- * Point allocation: Academic 10, Technical 45, Experience 25, Soft Skills 20 = 100.
- */
-function calculateRealProbability(profile: CandidateProfile): number {
-  let score = 0;
-  const maxScore = 100;
-
-  // ── Academic (10 points max) — low priority ──
-  const cgpa = profile.academic.cgpa ?? 0;
-  const backlogs = profile.academic.backlogs ?? 0;
-
-  // CGPA: 0-5 points
-  if (cgpa >= 9) score += 5;
-  else if (cgpa >= 8) score += 4;
-  else if (cgpa >= 7) score += 3;
-  else if (cgpa >= 6) score += 1;
-  else score += cgpa * 0.2;
-
-  // 10th/12th: 0-1 point each (minimal impact)
-  if ((profile.academic.tenthPercentage ?? 0) >= 70) score += 1;
-  if ((profile.academic.twelfthPercentage ?? 0) >= 70) score += 1;
-
-  // Branch relevance: 0-1 point
-  if (
-    ["Computer Science", "Information Technology", "Electronics"].includes(
-      profile.academic.degreeBranch,
-    )
-  ) {
-    score += 1;
-  }
-
-  // Backlogs penalty: -3 per backlog (max -9)
-  score -= Math.min(backlogs * 3, 9);
-
-  // ── Technical (45 points max) — HIGH priority ──
-  const skills = profile.technical.technicalSkills.length;
-  const dsa = profile.technical.dsaLevel;
-  const projects = profile.technical.projectsCount ?? 0;
-  const hasInternship = profile.technical.hasInternship;
-  const certs = profile.technical.certifications.length;
-
-  // Technical skills: 0-10 points
-  score += Math.min(skills * 2, 10);
-
-  // DSA Level: 0-12 points (most critical technical factor)
-  if (dsa === "Advanced") score += 12;
-  else if (dsa === "Intermediate") score += 8;
-  else if (dsa === "Basic") score += 3;
-
-  // Projects: 0-10 points
-  score += Math.min(projects * 2.5, 10);
-
-  // Internship: 0-10 points
-  if (hasInternship) score += 10;
-
-  // Certifications: 0-3 points
-  score += Math.min(certs, 3);
-
-  // ── Experience (25 points max) — high priority ──
-  const hackathons = profile.experience.hackathonsCount ?? 0;
-  const hasOpenSource = profile.experience.hasOpenSourceContributions;
-  const atsScore = profile.experience.resumeATSScore;
-
-  // Hackathons: 0-6 points
-  score += Math.min(hackathons * 2, 6);
-
-  // Open source: 0-8 points
-  if (hasOpenSource) score += 8;
-
-  // ATS Score: 0-5 points
-  score += (atsScore / 100) * 5;
-
-  // ── Soft Skills (20 points max) — medium priority ──
-  const aptitude = profile.softSkills.aptitudeScore;
-  const communication = profile.softSkills.communicationScore;
-  const mockInterview = profile.softSkills.mockInterviewScore;
-  const english = profile.softSkills.englishFluency;
-
-  // Aptitude: 0-5 points
-  score += (aptitude / 100) * 5;
-
-  // Communication: 0-6 points
-  score += (communication / 10) * 6;
-
-  // Mock Interview: 0-5 points
-  score += (mockInterview / 10) * 5;
-
-  // English: 0-4 points
-  score += (english / 10) * 4;
-
-  return Math.max(0, Math.min(maxScore, score));
 }
 
 /**

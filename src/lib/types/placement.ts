@@ -135,8 +135,8 @@ export interface FeatureImportanceItem {
 export interface ModelInsights {
   logisticRegressionProb: number;
   randomForestProb: number;
-  knnPrediction: number;
   featureImportance: FeatureImportanceItem[];
+  cvMetrics?: any;
 }
 
 /**

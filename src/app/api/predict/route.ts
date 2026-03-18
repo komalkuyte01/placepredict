@@ -28,8 +28,17 @@ export async function POST(request: Request) {
         return NextResponse.json({ prediction });
     } catch (error) {
         console.error("Prediction error:", error);
+        const detail =
+            process.env.NODE_ENV === "development"
+                ? error instanceof Error
+                    ? error.message
+                    : String(error)
+                : undefined;
         return NextResponse.json(
-            { error: "Failed to run prediction" },
+            {
+                error: "Failed to run prediction",
+                ...(detail ? { detail } : {}),
+            },
             { status: 500 },
         );
     }
