@@ -36,6 +36,11 @@ yarn-error.log*
 # vercel
 .vercel
 
+# downloaded model artifact
+src/lib/ml/placement-model-artifact.json
+# downloaded training data
+src/lib/ml/placement-training-data.json
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -4,7 +4,6 @@ import {
   ArrowRight,
   BarChart3,
   Brain,
-  Briefcase,
   CheckCircle2,
   FileText,
   GraduationCap,
@@ -18,7 +17,7 @@ import {
 } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { Footer } from "@/components/shared/footer";
-import { createEmptyProfile } from "@/lib/ml/placement-ml-engine";
+import { createEmptyProfile } from "@/lib/ml/default-profile";
 import type {
   CandidateProfile,
   ResumeParseResult,
@@ -73,7 +72,9 @@ export function LandingPage({
 
         if (!response.ok) {
           const errorText = await response.text();
-          alert(`Resume parsing failed (HTTP ${response.status}):\n${errorText}`);
+          alert(
+            `Resume parsing failed (HTTP ${response.status}):\n${errorText}`,
+          );
           return;
         }
 
@@ -162,8 +163,8 @@ export function LandingPage({
           const missing = result.missingFields?.join(", ") || "";
           alert(
             `Resume parsing failed.\n\n` +
-            (warnings ? `Reason: ${warnings}\n` : "") +
-            (missing ? `Missing: ${missing}` : "")
+              (warnings ? `Reason: ${warnings}\n` : "") +
+              (missing ? `Missing: ${missing}` : ""),
           );
         }
       } catch (error) {
@@ -302,6 +303,7 @@ export function LandingPage({
             </p>
             <div className="flex flex-row gap-2 sm:gap-3 justify-center">
               <button
+                type="button"
                 onClick={handleUploadClick}
                 disabled={isUploading}
                 className="group inline-flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-3 sm:py-3.5 bg-[#6e44ff] text-white rounded-full text-sm sm:text-base font-medium shadow-lg shadow-[#6e44ff]/25 hover:bg-[#5c35e6] hover:shadow-xl hover:shadow-[#6e44ff]/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -311,6 +313,7 @@ export function LandingPage({
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
               </button>
               <button
+                type="button"
                 onClick={() => onSelectOption("manual")}
                 className="group inline-flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-3 sm:py-3.5 bg-gray-100 text-gray-700 rounded-full text-sm sm:text-base font-medium border border-gray-300 hover:border-gray-400 hover:bg-gray-200 transition-all duration-200"
               >
@@ -358,9 +361,9 @@ export function LandingPage({
             </p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            {features.map((feature, index) => (
+            {features.map((feature) => (
               <div
-                key={index}
+                key={feature.title}
                 className="group p-4 sm:p-6 rounded-xl sm:rounded-2xl bg-white border border-gray-200 hover:border-gray-300 hover:shadow-lg hover:shadow-gray-100/50 transition-all duration-300 text-center"
               >
                 <div
@@ -392,8 +395,8 @@ export function LandingPage({
                 <h3 className="font-bold text-gray-900">How It Works</h3>
               </div>
               <div className="space-y-3">
-                {objectives.map((objective, index) => (
-                  <div key={index} className="flex items-start gap-3">
+                {objectives.map((objective) => (
+                  <div key={objective} className="flex items-start gap-3">
                     <div className="w-1.5 h-1.5 rounded-full bg-[#6e44ff] flex-shrink-0 mt-2" />
                     <p className="text-gray-600 text-sm">{objective}</p>
                   </div>
@@ -415,9 +418,9 @@ export function LandingPage({
                   "Hackathons",
                   "Communication",
                   "ATS Score",
-                ].map((item, index) => (
+                ].map((item) => (
                   <div
-                    key={index}
+                    key={item}
                     className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 py-1.5 sm:py-2 px-2 sm:px-3 bg-gray-50 rounded-lg"
                   >
                     <div className="w-1.5 h-1.5 rounded-full bg-[#6e44ff] flex-shrink-0" />
@@ -444,11 +447,12 @@ export function LandingPage({
 
           <div className="grid md:grid-cols-2 gap-4 sm:gap-6 max-w-4xl mx-auto">
             {/* Upload Resume Card */}
-            <div
+            <button
+              type="button"
               onMouseEnter={() => setHoveredCard("upload")}
               onMouseLeave={() => setHoveredCard(null)}
               onClick={handleUploadClick}
-              className={`relative cursor-pointer rounded-xl sm:rounded-2xl p-5 sm:p-8 border transition-all duration-300 ${
+              className={`relative cursor-pointer rounded-xl sm:rounded-2xl p-5 sm:p-8 border transition-all duration-300 text-left ${
                 hoveredCard === "upload"
                   ? "border-[#6e44ff]/30 bg-[#6e44ff]/5 shadow-xl shadow-[#6e44ff]/10 -translate-y-1"
                   : "border-gray-200 bg-white hover:border-gray-300"
@@ -474,9 +478,9 @@ export function LandingPage({
                   "Automatic extraction",
                   "AI-calculated ATS score",
                   "Fast (~30 seconds)",
-                ].map((item, index) => (
+                ].map((item) => (
                   <li
-                    key={index}
+                    key={item}
                     className="flex items-center gap-2 text-xs sm:text-sm text-gray-600"
                   >
                     <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#6e44ff] flex-shrink-0" />
@@ -484,18 +488,19 @@ export function LandingPage({
                   </li>
                 ))}
               </ul>
-              <button className="w-full py-2.5 sm:py-3 rounded-lg sm:rounded-xl bg-[#6e44ff] text-white text-sm sm:text-base font-medium flex items-center justify-center gap-2 hover:bg-[#5c35e6] transition-colors shadow-lg shadow-[#6e44ff]/20">
+              <div className="w-full py-2.5 sm:py-3 rounded-lg sm:rounded-xl bg-[#6e44ff] text-white text-sm sm:text-base font-medium flex items-center justify-center gap-2 hover:bg-[#5c35e6] transition-colors shadow-lg shadow-[#6e44ff]/20">
                 Get Started
                 <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
+              </div>
+            </button>
 
             {/* Manual Entry Card */}
-            <div
+            <button
+              type="button"
               onMouseEnter={() => setHoveredCard("manual")}
               onMouseLeave={() => setHoveredCard(null)}
               onClick={() => onSelectOption("manual")}
-              className={`relative cursor-pointer rounded-xl sm:rounded-2xl p-5 sm:p-8 border transition-all duration-300 ${
+              className={`relative cursor-pointer rounded-xl sm:rounded-2xl p-5 sm:p-8 border transition-all duration-300 text-left ${
                 hoveredCard === "manual"
                   ? "border-gray-300 bg-gray-50/50 shadow-xl shadow-gray-100/50 -translate-y-1"
                   : "border-gray-200 bg-white hover:border-gray-300"
@@ -512,10 +517,10 @@ export function LandingPage({
                 data.
               </p>
               <ul className="space-y-2 sm:space-y-2.5 mb-4 sm:mb-6">
-                {["Full data control", "No resume needed", "Edit Anything"].map(
-                  (item, index) => (
+                {["Full data control", "No resume needed", "Edit anything"].map(
+                  (item) => (
                     <li
-                      key={index}
+                      key={item}
                       className="flex items-center gap-2 text-xs sm:text-sm text-gray-600"
                     >
                       <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
@@ -524,11 +529,11 @@ export function LandingPage({
                   ),
                 )}
               </ul>
-              <button className="w-full py-2.5 sm:py-3 rounded-lg sm:rounded-xl bg-gray-900 text-white text-sm sm:text-base font-medium flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors">
+              <div className="w-full py-2.5 sm:py-3 rounded-lg sm:rounded-xl bg-gray-900 text-white text-sm sm:text-base font-medium flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors">
                 Get Started
                 <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
+              </div>
+            </button>
           </div>
         </div>
       </section>

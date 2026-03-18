@@ -11,9 +11,7 @@ import { useCallback, useEffect, useState } from "react";
 import { CandidateForm } from "@/components/forms/candidate-form";
 import { PredictionResults } from "@/components/results/prediction-results";
 import { Footer } from "@/components/shared/footer";
-import {
-  createEmptyProfile,
-} from "@/lib/ml/placement-ml-engine";
+import { createEmptyProfile } from "@/lib/ml/default-profile";
 import type {
   CandidateProfile,
   IssueItem,

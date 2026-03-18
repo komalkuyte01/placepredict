@@ -35,14 +35,3 @@ declare module "ml-random-forest" {
     predictionValues?: number[][];
   }
 }
-
-declare module "ml-knn" {
-  interface KNNOptions {
-    k?: number;
-  }
-
-  export default class KNN {
-    constructor(dataset: number[][], labels: number[], options?: KNNOptions);
-    predict(samples: number[][]): number[];
-  }
-}

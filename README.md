@@ -117,6 +117,15 @@ npm install
 Create a `.env.local` file in the project root and add:
 ```env
 GEMINI_API_KEY=your_gemini_api_key_here
+
+# Vercel Blob (server-side only)
+BLOB_READ_WRITE_TOKEN=your_vercel_blob_rw_token_here
+
+# Used by predev/prebuild to fetch the trained model artifact
+MODEL_ARTIFACT_URL=https://<your-blob-url>/placement-model-artifact.json
+
+# Used by npm run train:model to fetch training dataset
+TRAINING_DATA_URL=https://<your-blob-url>/placement-training-data.json
 ```
 
 ```bash
@@ -137,31 +146,59 @@ Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 
 ---
 
-## 🤖 ML Pipeline (Current)
+## 🤖 ML Pipeline (Production)
 
-The current prediction flow in `src/lib/ml/placement-ml-engine.ts` is:
+GradeSight uses an **offline training + online inference** architecture:
 
-1. Build a **21-feature vector**:
-  - 17 base features (academics, technical, experience, soft skills)
-  - 4 engineered binary flags:
-    - `Is CGPA Below 7.5`
-    - `Is 12th Below 60%`
-    - `Is Skills Below 5`
-    - `Is Projects Below 2`
-2. Apply **min-max normalization** (clamped to `[0, 1]` for inference safety).
-3. Train models using **5-fold cross-validation** for metrics:
-  - Random Forest
-  - Logistic Regression
-4. Train final models on full data and predict with a weighted ensemble:
-  - `RF * 0.7 + LR * 0.3`
-5. Return:
-  - probability (0–100)
-  - risk category
-  - strengths/weaknesses/suggestions
-  - feature importance
-  - CV metrics (`modelInsights.cvMetrics`)
+1. Download training dataset from **Vercel Blob**.
+2. Train models locally.
+3. Export model artifact JSON (serialized Logistic Regression + Random Forest + normalization + metrics).
+4. Upload artifact to **Vercel Blob**.
+4. During `npm run dev` / `npm run build`, a pre-script downloads the artifact to:
+   - `src/lib/ml/placement-model-artifact.json`
+5. `/api/predict` loads the artifact and performs **inference only** (no runtime training).
+
+This avoids serverless timeouts and keeps prediction fast on Vercel.
 
 > Note: The bundled training data is synthetic/prototype data and should not be treated as production ground truth.
+
+---
+
+## ☁️ Vercel Blob Model Artifact Setup
+
+### 1) Upload training data and set URL
+
+Upload `placement-training-data.json` to Vercel Blob and set `TRAINING_DATA_URL`.
+
+### 2) Train and export artifact locally
+
+```bash
+npm run train:model
+```
+
+### 3) Upload artifact to Vercel Blob
+
+Upload `placement-model-artifact.json` to your Blob store and copy its URL.
+
+### 4) Set environment variables
+
+Set these in both local `.env.local` and Vercel Project Settings:
+
+- `MODEL_ARTIFACT_URL` — Blob URL of artifact JSON
+- `TRAINING_DATA_URL` — Blob URL of training dataset JSON
+- `BLOB_READ_WRITE_TOKEN` — token for private Blob access
+
+### 5) Build/deploy
+
+`predev` and `prebuild` auto-fetch the artifact before app startup/build.
+
+---
+
+## 🔐 Security Notes
+
+- Never commit real API keys or Blob tokens.
+- If any secret is exposed, rotate immediately.
+- Keep `.env.local` in `.gitignore` (already configured).
 
 ---
 
@@ -169,8 +206,9 @@ The current prediction flow in `src/lib/ml/placement-ml-engine.ts` is:
 
 | Command | Description |
 |---|---|
-| `npm run dev` | Start development server |
-| `npm run build` | Create production build |
+| `npm run train:model` | Download training data from Blob, train offline, and generate artifact JSON |
+| `npm run dev` | Fetch model artifact, then start development server |
+| `npm run build` | Fetch model artifact, then create production build |
 | `npm run start` | Start production server |
 | `npm run lint` | Run Biome linter |
 | `npm run format` | Format code with Biome |

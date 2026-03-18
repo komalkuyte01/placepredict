@@ -145,7 +145,12 @@ export function PredictionResults({
           <div className="flex flex-col md:flex-row items-center gap-8">
             {/* Probability Circle */}
             <div className="relative w-48 h-48">
-              <svg className="w-full h-full transform -rotate-90">
+              <svg
+                className="w-full h-full transform -rotate-90"
+                role="img"
+                aria-label="Placement probability ring chart"
+              >
+                <title>Placement probability</title>
                 <circle
                   cx="96"
                   cy="96"
@@ -239,7 +244,13 @@ export function PredictionResults({
           </h3>
           <div className="flex items-center justify-center gap-4 sm:gap-8">
             <div className="relative w-36 h-36 sm:w-52 sm:h-52 flex-shrink-0">
-              <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+              <svg
+                viewBox="0 0 100 100"
+                className="w-full h-full -rotate-90"
+                role="img"
+                aria-label="Skills distribution donut chart"
+              >
+                <title>Skills distribution</title>
                 {(() => {
                   const academicScore = Math.max(
                     5,
@@ -293,7 +304,7 @@ export function PredictionResults({
                   const radius = 30;
                   const circumference = 2 * Math.PI * radius;
 
-                  return scores.map((score, i) => {
+                  return scores.map((score) => {
                     const percent = (score.value / total) * 100;
                     const strokeDasharray = `${(percent / 100) * circumference} ${circumference}`;
                     const strokeDashoffset = -(
@@ -304,7 +315,7 @@ export function PredictionResults({
 
                     return (
                       <circle
-                        key={i}
+                        key={score.color}
                         cx="50"
                         cy="50"
                         r={radius}
@@ -352,8 +363,11 @@ export function PredictionResults({
                   color: "bg-red-500",
                   value: profile.technical?.hasInternship ? "Yes" : "No",
                 },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-2 text-sm">
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="flex items-center gap-2 text-sm"
+                >
                   <span
                     className={cn(
                       "w-2.5 h-2.5 rounded-full flex-shrink-0",
@@ -450,8 +464,8 @@ export function PredictionResults({
                 },
               ];
 
-              return factors.map((factor, idx) => (
-                <div key={idx} className="flex items-center gap-2">
+              return factors.map((factor) => (
+                <div key={factor.name} className="flex items-center gap-2">
                   <div className="w-20 text-xs text-[hsl(240,3.8%,46.1%)] flex-shrink-0">
                     {factor.name}
                   </div>
@@ -532,9 +546,9 @@ export function PredictionResults({
                     for a Software Developer role:
                   </p>
                   <ul className="space-y-3">
-                    {issues.map((issue, index) => (
+                    {issues.map((issue) => (
                       <li
-                        key={index}
+                        key={`${issue.type}-${issue.name}`}
                         className="p-3 bg-orange-50 rounded-lg border border-orange-100"
                       >
                         <div className="flex items-start gap-2">
@@ -605,9 +619,9 @@ export function PredictionResults({
               <div className="px-6 pb-6">
                 {prediction.strengths.length > 0 ? (
                   <ul className="space-y-3">
-                    {prediction.strengths.map((strength, index) => (
+                    {prediction.strengths.map((strength) => (
                       <li
-                        key={index}
+                        key={`${strength.area}-${strength.value}`}
                         className="flex items-start gap-3 p-3 bg-emerald-50 rounded-lg border border-emerald-100"
                       >
                         <div className="w-2 h-2 rounded-full bg-emerald-500 mt-2" />
@@ -674,9 +688,9 @@ export function PredictionResults({
               <div className="px-6 pb-6">
                 {prediction.weaknesses.length > 0 ? (
                   <ul className="space-y-3">
-                    {prediction.weaknesses.map((weakness, index) => (
+                    {prediction.weaknesses.map((weakness) => (
                       <li
-                        key={index}
+                        key={`${weakness.area}-${weakness.currentValue}`}
                         className="p-3 bg-red-50 rounded-lg border border-red-100"
                       >
                         <div className="flex items-start gap-2 mb-2">
@@ -752,7 +766,7 @@ export function PredictionResults({
 
               return (
                 <div
-                  key={index}
+                  key={`${suggestion.title}-${suggestion.priority}`}
                   className={cn(
                     "p-4 rounded-lg border",
                     suggestion.priority === "high" &&
@@ -808,6 +822,7 @@ export function PredictionResults({
       {/* Action Button */}
       <div className="flex justify-center">
         <button
+          type="button"
           onClick={onReset}
           className={cn(
             "px-8 py-3 rounded-lg font-semibold",

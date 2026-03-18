@@ -32,7 +32,7 @@ async function tryWithModels(prompt: string): Promise<string | null> {
       const result = await model.generateContent(prompt);
       const response = result.response;
       return response.text();
-    } catch { }
+    } catch {}
   }
   return null;
 }
@@ -132,7 +132,7 @@ Focus on:
 }
 
 function generateFallbackSuggestions(
-  profile: CandidateProfile,
+  _profile: CandidateProfile,
   prediction: PlacementPrediction,
 ): AISuggestion[] {
   const suggestions: AISuggestion[] = [];

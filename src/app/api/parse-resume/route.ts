@@ -68,7 +68,6 @@ Capitalize properly: "JavaScript", "React", "AWS", "Docker".
 Resume:
 `;
 
-
 /**
  * Extract text from PDF buffer using pdf-parse v2
  */
@@ -308,7 +307,7 @@ export async function POST(request: NextRequest) {
       parsedData.academic?.twelfthPercentage,
       (parsedData.technical?.technicalSkills?.length || 0) > 0,
       parsedData.technical?.dsaLevel &&
-      parsedData.technical.dsaLevel !== "None",
+        parsedData.technical.dsaLevel !== "None",
       (parsedData.technical?.projectsCount || 0) > 0,
       parsedData.technical?.hasInternship,
       (parsedData.technical?.certifications?.length || 0) > 0,

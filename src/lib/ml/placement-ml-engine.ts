@@ -1,15 +1,16 @@
 /**
  * ML-Powered Placement Prediction Engine
  *
- * Trains an ensemble of Logistic Regression, Random Forest, and KNN models
+ * Trains an ensemble of Logistic Regression and Random Forest models
  * on curated placement data, and uses their weighted predictions to assess
  * a candidate's placement probability for Software Developer roles.
  */
 
+import fs from "node:fs";
+import path from "node:path";
 import LogisticRegression from "ml-logistic-regression";
 import { Matrix } from "ml-matrix";
 import { RandomForestClassifier } from "ml-random-forest";
-import placementTrainingData from "@/lib/ml/placement-training-data.json";
 import type {
   CandidateProfile,
   DSALevel,
@@ -23,6 +24,12 @@ import type {
 
 /** A single labeled record used for model training. */
 export interface TrainingDataPoint {
+  features: number[];
+  label: number;
+}
+
+/** Raw row format as stored in dataset JSON. */
+export interface RawTrainingDataPoint {
   features: number[];
   label: number;
 }
@@ -66,8 +73,8 @@ function dsaToNumeric(dsa: DSALevel): number {
 }
 
 /**
- * Takes the base 17 features (from generated data or profile) and applies 
- * hard-coded business rules (like low CGPA) as binary features so the ML 
+ * Takes the base 17 features (from generated data or profile) and applies
+ * hard-coded business rules (like low CGPA) as binary features so the ML
  * models can natively learn to penalize them.
  */
 function transformFeaturesIteratively(features: number[]): number[] {
@@ -152,17 +159,45 @@ function normalizeFeatures(
   return { normalized, mins: calculatedMins, maxs: calculatedMaxs };
 }
 
+/** Converts raw dataset rows into training-ready points with engineered features. */
+export function generateTrainingDataFromRaw(
+  rawData: RawTrainingDataPoint[],
+): TrainingDataPoint[] {
+  return rawData.map((d) => ({
+    features: transformFeaturesIteratively(d.features),
+    label: d.label,
+  }));
+}
+
 /**
- * Loads the curated training dataset (3 000 records across 5 student archetypes)
- * from the bundled JSON file.
+ * Loads training dataset from disk.
+ * Intended for local/offline training workflows.
+ */
+export function loadRawTrainingDataFromDisk(
+  filePath = DEFAULT_TRAINING_DATA_PATH,
+): RawTrainingDataPoint[] {
+  if (!fs.existsSync(filePath)) {
+    throw new Error(
+      `Training dataset not found at ${filePath}. Provide dataset via Blob URL in train script or place the file locally.`,
+    );
+  }
+
+  const raw = fs.readFileSync(filePath, "utf-8");
+  const parsed = JSON.parse(raw) as RawTrainingDataPoint[];
+
+  if (!Array.isArray(parsed) || parsed.length === 0) {
+    throw new Error("Training dataset is empty or invalid.");
+  }
+
+  return parsed;
+}
+
+/**
+ * Loads the curated training dataset from local disk and transforms features.
+ * Kept for backward compatibility with local/offline workflows.
  */
 export function generateTrainingData(): TrainingDataPoint[] {
-  return (placementTrainingData as { features: number[]; label: number }[]).map(
-    (d) => ({
-      features: transformFeaturesIteratively(d.features),
-      label: d.label,
-    }),
-  );
+  return generateTrainingDataFromRaw(loadRawTrainingDataFromDisk());
 }
 
 /** Container holding all trained model instances and normalization metadata. */
@@ -186,6 +221,44 @@ interface TrainedModels {
   };
 }
 
+/** On-disk artifact format for offline-trained models. */
+export interface PlacementModelArtifact {
+  version: number;
+  trainedAt: string;
+  modelType: "rf-lr-ensemble";
+  featureNames: string[];
+  featureImportance: number[];
+  normalization: { mins: number[]; maxs: number[] };
+  cvMetrics: {
+    lr: EvaluationMetrics;
+    rf: EvaluationMetrics;
+    ensemble: EvaluationMetrics;
+  };
+  logisticRegressionModel: unknown;
+  randomForestModel: unknown;
+}
+
+interface RandomForestProbabilityModel {
+  predict: (x: number[][]) => number[];
+  predictProbability: (x: number[][], label: number) => number[];
+}
+
+const DEFAULT_ARTIFACT_PATH = path.join(
+  process.cwd(),
+  "src",
+  "lib",
+  "ml",
+  "placement-model-artifact.json",
+);
+
+const DEFAULT_TRAINING_DATA_PATH = path.join(
+  process.cwd(),
+  "src",
+  "lib",
+  "ml",
+  "placement-training-data.json",
+);
+
 /** Trains Logistic Regression and Random Forest using 5-Fold CV, then retrains on full dataset. */
 export function trainModels(trainingData: TrainingDataPoint[]): TrainedModels {
   const shuffled = [...trainingData].sort(() => Math.random() - 0.5);
@@ -200,60 +273,120 @@ export function trainModels(trainingData: TrainingDataPoint[]): TrainedModels {
   for (let k = 0; k < kFolds; k++) {
     const testStart = k * foldSize;
     const testEnd = k === kFolds - 1 ? shuffled.length : testStart + foldSize;
-    
-    const testSplit = shuffled.slice(testStart, testEnd);
-    const trainSplit = [...shuffled.slice(0, testStart), ...shuffled.slice(testEnd)];
 
-    const { normalized: normTrainFeatures, mins, maxs } = normalizeFeatures(trainSplit.map(d => d.features));
+    const testSplit = shuffled.slice(testStart, testEnd);
+    const trainSplit = [
+      ...shuffled.slice(0, testStart),
+      ...shuffled.slice(testEnd),
+    ];
+
+    const {
+      normalized: normTrainFeatures,
+      mins,
+      maxs,
+    } = normalizeFeatures(trainSplit.map((d) => d.features));
     const trainLabels = trainSplit.map((d) => d.label);
 
     const lr = new LogisticRegression({ numSteps: 500, learningRate: 0.1 });
     lr.train(new Matrix(normTrainFeatures), Matrix.columnVector(trainLabels));
 
-    const rf = new RandomForestClassifier({ nEstimators: 30, maxFeatures: 0.8, replacement: true, seed: 42 });
+    const rf = new RandomForestClassifier({
+      nEstimators: 30,
+      maxFeatures: 0.8,
+      replacement: true,
+      seed: 42,
+    });
     rf.train(normTrainFeatures, trainLabels);
 
-    const normTestFeatures = testSplit.map(d => normalizeSingleFeature(d.features, mins, maxs));
-    const testLabels = testSplit.map(d => d.label);
+    const normTestFeatures = testSplit.map((d) =>
+      normalizeSingleFeature(d.features, mins, maxs),
+    );
+    const testLabels = testSplit.map((d) => d.label);
 
     const lrPreds = getLogisticPositiveProbabilities(lr, normTestFeatures).map(
       (p) => (p >= 0.5 ? 1 : 0),
     );
-    const rfPreds = (rf as any).predictProbability(normTestFeatures, 1).map((p: number) => p >= 0.5 ? 1 : 0);
+    const rfModel = rf as unknown as RandomForestProbabilityModel;
+    const rfPreds = rfModel
+      .predictProbability(normTestFeatures, 1)
+      .map((p: number) => (p >= 0.5 ? 1 : 0));
     const ensPreds = normTestFeatures.map((f) => {
       const lrProb = getLogisticPositiveProbabilities(lr, [f])[0] ?? 0;
-      const rfProb = (rf as any).predictProbability([f], 1)[0];
-      return (rfProb * 0.7 + lrProb * 0.3) >= 0.5 ? 1 : 0;
+      const rfProb = rfModel.predictProbability([f], 1)[0] ?? 0;
+      return rfProb * 0.7 + lrProb * 0.3 >= 0.5 ? 1 : 0;
     });
 
     const mLR = calculateMetrics(lrPreds, testLabels);
     const mRF = calculateMetrics(rfPreds, testLabels);
     const mEns = calculateMetrics(ensPreds, testLabels);
 
-    lrMetricsSum = { accuracy: lrMetricsSum.accuracy + mLR.accuracy, precision: lrMetricsSum.precision + mLR.precision, recall: lrMetricsSum.recall + mLR.recall, f1: lrMetricsSum.f1 + mLR.f1 };
-    rfMetricsSum = { accuracy: rfMetricsSum.accuracy + mRF.accuracy, precision: rfMetricsSum.precision + mRF.precision, recall: rfMetricsSum.recall + mRF.recall, f1: rfMetricsSum.f1 + mRF.f1 };
-    ensMetricsSum = { accuracy: ensMetricsSum.accuracy + mEns.accuracy, precision: ensMetricsSum.precision + mEns.precision, recall: ensMetricsSum.recall + mEns.recall, f1: ensMetricsSum.f1 + mEns.f1 };
+    lrMetricsSum = {
+      accuracy: lrMetricsSum.accuracy + mLR.accuracy,
+      precision: lrMetricsSum.precision + mLR.precision,
+      recall: lrMetricsSum.recall + mLR.recall,
+      f1: lrMetricsSum.f1 + mLR.f1,
+    };
+    rfMetricsSum = {
+      accuracy: rfMetricsSum.accuracy + mRF.accuracy,
+      precision: rfMetricsSum.precision + mRF.precision,
+      recall: rfMetricsSum.recall + mRF.recall,
+      f1: rfMetricsSum.f1 + mRF.f1,
+    };
+    ensMetricsSum = {
+      accuracy: ensMetricsSum.accuracy + mEns.accuracy,
+      precision: ensMetricsSum.precision + mEns.precision,
+      recall: ensMetricsSum.recall + mEns.recall,
+      f1: ensMetricsSum.f1 + mEns.f1,
+    };
   }
 
   // Average metrics
   const cvMetrics = {
-    lr: { accuracy: lrMetricsSum.accuracy / kFolds, precision: lrMetricsSum.precision / kFolds, recall: lrMetricsSum.recall / kFolds, f1: lrMetricsSum.f1 / kFolds },
-    rf: { accuracy: rfMetricsSum.accuracy / kFolds, precision: rfMetricsSum.precision / kFolds, recall: rfMetricsSum.recall / kFolds, f1: rfMetricsSum.f1 / kFolds },
-    ensemble: { accuracy: ensMetricsSum.accuracy / kFolds, precision: ensMetricsSum.precision / kFolds, recall: ensMetricsSum.recall / kFolds, f1: ensMetricsSum.f1 / kFolds }
+    lr: {
+      accuracy: lrMetricsSum.accuracy / kFolds,
+      precision: lrMetricsSum.precision / kFolds,
+      recall: lrMetricsSum.recall / kFolds,
+      f1: lrMetricsSum.f1 / kFolds,
+    },
+    rf: {
+      accuracy: rfMetricsSum.accuracy / kFolds,
+      precision: rfMetricsSum.precision / kFolds,
+      recall: rfMetricsSum.recall / kFolds,
+      f1: rfMetricsSum.f1 / kFolds,
+    },
+    ensemble: {
+      accuracy: ensMetricsSum.accuracy / kFolds,
+      precision: ensMetricsSum.precision / kFolds,
+      recall: ensMetricsSum.recall / kFolds,
+      f1: ensMetricsSum.f1 / kFolds,
+    },
   };
 
   // 2. Train Final Model on 100% Data
-  const fullFeatures = trainingData.map(d => d.features);
-  const fullLabels = trainingData.map(d => d.label);
-  const { normalized: normFullFeatures, mins: fullMins, maxs: fullMaxs } = normalizeFeatures(fullFeatures);
+  const fullFeatures = trainingData.map((d) => d.features);
+  const fullLabels = trainingData.map((d) => d.label);
+  const {
+    normalized: normFullFeatures,
+    mins: fullMins,
+    maxs: fullMaxs,
+  } = normalizeFeatures(fullFeatures);
 
   const finalLr = new LogisticRegression({ numSteps: 1000, learningRate: 0.1 });
   finalLr.train(new Matrix(normFullFeatures), Matrix.columnVector(fullLabels));
 
-  const finalRf = new RandomForestClassifier({ nEstimators: 50, maxFeatures: 0.8, replacement: true, seed: 42 });
+  const finalRf = new RandomForestClassifier({
+    nEstimators: 50,
+    maxFeatures: 0.8,
+    replacement: true,
+    seed: 42,
+  });
   finalRf.train(normFullFeatures, fullLabels);
 
-  const featureImportance = calculateFeatureImportance(finalRf, normFullFeatures, fullLabels);
+  const featureImportance = calculateFeatureImportance(
+    finalRf,
+    normFullFeatures,
+    fullLabels,
+  );
 
   return {
     logisticRegression: finalLr,
@@ -261,8 +394,92 @@ export function trainModels(trainingData: TrainingDataPoint[]): TrainedModels {
     featureImportance,
     featureNames: FEATURE_NAMES,
     normalization: { mins: fullMins, maxs: fullMaxs },
-    cvMetrics
+    cvMetrics,
   };
+}
+
+/** Converts trained runtime models into a persisted JSON artifact. */
+export function createModelArtifact(
+  customData?: TrainingDataPoint[],
+): PlacementModelArtifact {
+  const trainingData = customData ?? generateTrainingData();
+  const trained = trainModels(trainingData);
+
+  const lr = trained.logisticRegression as { toJSON?: () => unknown };
+  const rf = trained.randomForest as { toJSON?: () => unknown };
+
+  return {
+    version: 1,
+    trainedAt: new Date().toISOString(),
+    modelType: "rf-lr-ensemble",
+    featureNames: trained.featureNames,
+    featureImportance: trained.featureImportance,
+    normalization: trained.normalization,
+    cvMetrics: trained.cvMetrics,
+    logisticRegressionModel: lr.toJSON?.() ?? trained.logisticRegression,
+    randomForestModel: rf.toJSON?.() ?? trained.randomForest,
+  };
+}
+
+/** Loads trained models from a persisted artifact. */
+function modelsFromArtifact(artifact: PlacementModelArtifact): TrainedModels {
+  const LogisticRegressionWithLoad = LogisticRegression as unknown as {
+    load: (model: unknown) => unknown;
+  };
+  const RandomForestWithLoad = RandomForestClassifier as unknown as {
+    load: (model: unknown) => unknown;
+  };
+
+  return {
+    logisticRegression: LogisticRegressionWithLoad.load(
+      artifact.logisticRegressionModel,
+    ),
+    randomForest: RandomForestWithLoad.load(artifact.randomForestModel),
+    featureImportance: artifact.featureImportance,
+    featureNames: artifact.featureNames,
+    normalization: artifact.normalization,
+    cvMetrics: artifact.cvMetrics,
+  };
+}
+
+/** Writes a model artifact to disk for deployment/runtime inference use. */
+export function writeModelArtifactToDisk(
+  artifact: PlacementModelArtifact,
+  outputPath = DEFAULT_ARTIFACT_PATH,
+): string {
+  const outputDir = path.dirname(outputPath);
+  if (!fs.existsSync(outputDir)) {
+    fs.mkdirSync(outputDir, { recursive: true });
+  }
+  fs.writeFileSync(outputPath, JSON.stringify(artifact, null, 2), "utf-8");
+  return outputPath;
+}
+
+/** Attempts to read a model artifact from disk. */
+function tryLoadArtifactFromDisk(): PlacementModelArtifact | null {
+  const artifactPath =
+    process.env.PLACEMENT_MODEL_ARTIFACT_PATH || DEFAULT_ARTIFACT_PATH;
+  if (!fs.existsSync(artifactPath)) {
+    return null;
+  }
+
+  try {
+    const raw = fs.readFileSync(artifactPath, "utf-8");
+    const parsed = JSON.parse(raw) as PlacementModelArtifact;
+    if (
+      !parsed ||
+      !parsed.normalization ||
+      !parsed.logisticRegressionModel ||
+      !parsed.randomForestModel
+    ) {
+      return null;
+    }
+
+    return parsed;
+  } catch (error) {
+    console.error("Failed to parse model artifact:", error);
+    return null;
+  }
 }
 
 /** Computes permutation-based feature importance against the Random Forest model. */
@@ -282,10 +499,9 @@ function calculateFeatureImportance(
 
     for (let j = originalValues.length - 1; j > 0; j--) {
       const k = Math.floor(Math.random() * (j + 1));
-      [originalValues[j], originalValues[k]] = [
-        originalValues[k]!,
-        originalValues[j]!,
-      ];
+      const valueAtJ = originalValues[j] ?? 0;
+      const valueAtK = originalValues[k] ?? 0;
+      [originalValues[j], originalValues[k]] = [valueAtK, valueAtJ];
     }
 
     permuted.forEach((row, idx) => {
@@ -315,8 +531,14 @@ function calculateAccuracy(
 }
 
 /** General purpose evaluation metrics generator (Precision, Recall, F1). */
-function calculateMetrics(predictions: number[], labels: number[]): EvaluationMetrics {
-  let tp = 0, tn = 0, fp = 0, fn = 0;
+function calculateMetrics(
+  predictions: number[],
+  labels: number[],
+): EvaluationMetrics {
+  let tp = 0,
+    tn = 0,
+    fp = 0,
+    fn = 0;
   for (let i = 0; i < labels.length; i++) {
     if (predictions[i] === 1 && labels[i] === 1) tp++;
     else if (predictions[i] === 0 && labels[i] === 0) tn++;
@@ -326,7 +548,10 @@ function calculateMetrics(predictions: number[], labels: number[]): EvaluationMe
   const accuracy = (tp + tn) / labels.length;
   const precision = tp + fp > 0 ? tp / (tp + fp) : 0;
   const recall = tp + fn > 0 ? tp / (tp + fn) : 0;
-  const f1 = precision + recall > 0 ? 2 * (precision * recall) / (precision + recall) : 0;
+  const f1 =
+    precision + recall > 0
+      ? (2 * (precision * recall)) / (precision + recall)
+      : 0;
   return { accuracy, precision, recall, f1 };
 }
 
@@ -372,9 +597,24 @@ function getLogisticPositiveProbabilities(
 /** Cached singleton — models are trained once and reused for all predictions. */
 let trainedModels: TrainedModels | null = null;
 
-/** Returns the cached model ensemble, training on first access. */
+/** Returns the cached model ensemble, loading artifact first for fast inference. */
 export function getTrainedModels(): TrainedModels {
   if (!trainedModels) {
+    const artifact = tryLoadArtifactFromDisk();
+    if (artifact) {
+      trainedModels = modelsFromArtifact(artifact);
+      return trainedModels;
+    }
+
+    const runtimeTrainingEnabled =
+      process.env.ENABLE_RUNTIME_TRAINING === "true";
+
+    if (process.env.NODE_ENV === "production" && !runtimeTrainingEnabled) {
+      throw new Error(
+        "Model artifact not found. Run offline training and deploy placement-model-artifact.json, or set ENABLE_RUNTIME_TRAINING=true (not recommended for Vercel).",
+      );
+    }
+
     const trainingData = generateTrainingData();
     trainedModels = trainModels(trainingData);
   }
@@ -460,7 +700,8 @@ export function predictPlacement(
   );
 
   // Run predictions through each model to get PROBABILITIES (0.0 to 1.0)
-  const rfProbs = (models.randomForest as any).predictProbability([normalizedFeatures], 1);
+  const rfModel = models.randomForest as RandomForestProbabilityModel;
+  const rfProbs = rfModel.predictProbability([normalizedFeatures], 1);
   const rfPrediction = rfProbs[0] ?? 0;
 
   const lrProbs = getLogisticPositiveProbabilities(models.logisticRegression, [
@@ -500,7 +741,7 @@ export function predictPlacement(
         feature: FEATURE_NAMES[i] ?? `Feature ${i}`,
         importance: imp,
       })),
-      cvMetrics: models.cvMetrics as any,
+      cvMetrics: models.cvMetrics,
     },
   };
 }
@@ -607,12 +848,7 @@ function calculateSimpleContributions(
 function identifyStrengthsWithRules(profile: CandidateProfile): StrengthArea[] {
   const strengths: StrengthArea[] = [];
 
-  const cgpa = profile.academic.cgpa ?? 0;
-  const tenth = profile.academic.tenthPercentage ?? 0;
-  const twelfth = profile.academic.twelfthPercentage ?? 0;
-  const backlogs = profile.academic.backlogs ?? 0;
   const skills = profile.technical.technicalSkills.length;
-  const dsa = profile.technical.dsaLevel;
   const certs = profile.technical.certifications.length;
   const aptitude = profile.softSkills.aptitudeScore;
   const hasInternship = profile.technical.hasInternship;
@@ -679,7 +915,7 @@ function identifyStrengthsWithRules(profile: CandidateProfile): StrengthArea[] {
  */
 function identifyWeaknessesWithRules(
   profile: CandidateProfile,
-  criteria: RoleCriteria,
+  _criteria: RoleCriteria,
 ): WeaknessArea[] {
   const weaknesses: WeaknessArea[] = [];
 
@@ -891,35 +1127,4 @@ function getRiskCategory(probability: number): RiskCategory {
   return "High";
 }
 
-/** Returns a default empty candidate profile with sensible initial values. */
-export function createEmptyProfile(): CandidateProfile {
-  return {
-    academic: {
-      cgpa: 7.0,
-      backlogs: 0,
-      tenthPercentage: 75,
-      twelfthPercentage: 75,
-      degreeBranch: "Computer Science",
-    },
-    technical: {
-      technicalSkills: [],
-      dsaLevel: "Basic",
-      projectsCount: 0,
-      hasInternship: false,
-      certifications: [],
-    },
-    experience: {
-      hackathonsCount: 0,
-      hasOpenSourceContributions: false,
-      resumeATSScore: 50,
-    },
-    softSkills: {
-      aptitudeScore: 50,
-      communicationScore: 5,
-      mockInterviewScore: 5,
-      englishFluency: 5,
-    },
-  };
-}
-
-
+export { createEmptyProfile } from "./default-profile";

@@ -359,7 +359,7 @@ If all items are legitimate and relevant, respond with:
         );
 
         return NextResponse.json({ issues });
-      } catch { }
+      } catch {}
     }
 
     // All models failed — use local fallback

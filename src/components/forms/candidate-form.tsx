@@ -160,7 +160,9 @@ export function CandidateForm({
               onChange={(e) =>
                 updateAcademic(
                   "backlogs",
-                  e.target.value === "" ? undefined : parseInt(e.target.value),
+                  e.target.value === ""
+                    ? undefined
+                    : parseInt(e.target.value, 10),
                 )
               }
               className="w-full"
@@ -259,9 +261,9 @@ export function CandidateForm({
                 </button>
               </div>
               <div className="flex flex-wrap gap-2">
-                {profile.technical.technicalSkills.map((skill, index) => (
+                {profile.technical.technicalSkills.map((skill) => (
                   <span
-                    key={`${skill}-${index}`}
+                    key={skill}
                     className="inline-flex items-center gap-1 px-2 py-1 bg-[#6e44ff]/10 text-[#6e44ff] rounded-lg text-sm"
                   >
                     {skill}
@@ -315,7 +317,9 @@ export function CandidateForm({
               onChange={(e) =>
                 updateTechnical(
                   "projectsCount",
-                  e.target.value === "" ? undefined : parseInt(e.target.value),
+                  e.target.value === ""
+                    ? undefined
+                    : parseInt(e.target.value, 10),
                 )
               }
               className="w-full"
@@ -343,9 +347,9 @@ export function CandidateForm({
                 </button>
               </div>
               <div className="flex flex-wrap gap-2">
-                {profile.technical.certifications.map((cert, index) => (
+                {profile.technical.certifications.map((cert) => (
                   <span
-                    key={`${cert}-${index}`}
+                    key={cert}
                     className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-sm"
                   >
                     {cert}
@@ -400,7 +404,9 @@ export function CandidateForm({
               onChange={(e) =>
                 updateExperience(
                   "hackathonsCount",
-                  e.target.value === "" ? undefined : parseInt(e.target.value),
+                  e.target.value === ""
+                    ? undefined
+                    : parseInt(e.target.value, 10),
                 )
               }
               className="w-full"
@@ -438,7 +444,10 @@ export function CandidateForm({
                 max="100"
                 value={profile.experience.resumeATSScore}
                 onChange={(e) =>
-                  updateExperience("resumeATSScore", parseInt(e.target.value))
+                  updateExperience(
+                    "resumeATSScore",
+                    parseInt(e.target.value, 10),
+                  )
                 }
                 className="w-full"
               />
@@ -471,7 +480,10 @@ export function CandidateForm({
                 max="100"
                 value={profile.softSkills.aptitudeScore}
                 onChange={(e) =>
-                  updateSoftSkills("aptitudeScore", parseInt(e.target.value))
+                  updateSoftSkills(
+                    "aptitudeScore",
+                    parseInt(e.target.value, 10),
+                  )
                 }
                 className="w-full"
               />
@@ -514,6 +526,7 @@ export function CandidateForm({
       {/* Submit Button */}
       <div className="flex justify-center">
         <button
+          type="button"
           onClick={onSubmit}
           disabled={isLoading}
           className={cn(
@@ -532,7 +545,7 @@ export function CandidateForm({
               Analyzing...
             </>
           ) : (
-            <>🤖 Run ML Prediction</>
+            "🤖 Run ML Prediction"
           )}
         </button>
       </div>
@@ -572,9 +585,9 @@ interface FormFieldProps {
 function FormField({ label, children }: FormFieldProps) {
   return (
     <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-[hsl(240,10%,3.9%)]">
+      <div className="block text-sm font-medium text-[hsl(240,10%,3.9%)]">
         {label}
-      </label>
+      </div>
       {children}
     </div>
   );
@@ -597,7 +610,7 @@ function ScoreSlider({ value, onChange, label }: ScoreSliderProps) {
         min="1"
         max="10"
         value={value}
-        onChange={(e) => onChange(parseInt(e.target.value))}
+        onChange={(e) => onChange(parseInt(e.target.value, 10))}
         className="w-full"
       />
       <div className="flex justify-between text-xs text-[hsl(240,3.8%,46.1%)]">

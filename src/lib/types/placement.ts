@@ -129,6 +129,19 @@ export interface FeatureImportanceItem {
   importance: number;
 }
 
+export interface EvaluationMetricsSummary {
+  accuracy: number;
+  precision: number;
+  recall: number;
+  f1: number;
+}
+
+export interface CrossValidationMetricsSummary {
+  lr: EvaluationMetricsSummary;
+  rf: EvaluationMetricsSummary;
+  ensemble: EvaluationMetricsSummary;
+}
+
 /**
  * Insights from individual ML models.
  */
@@ -136,7 +149,7 @@ export interface ModelInsights {
   logisticRegressionProb: number;
   randomForestProb: number;
   featureImportance: FeatureImportanceItem[];
-  cvMetrics?: any;
+  cvMetrics?: CrossValidationMetricsSummary;
 }
 
 /**
