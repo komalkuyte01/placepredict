@@ -1,0 +1,406 @@
+"use client";
+
+import {
+  ArrowLeft,
+  Briefcase,
+  CheckCircle,
+  ClipboardCheck,
+  Loader2,
+  PenLine,
+  Upload,
+} from "lucide-react";
+import Link from "next/link";
+import { useCallback, useRef, useState } from "react";
+import { CandidateForm } from "@/components/prediction/candidate-form";
+import { PredictionResults } from "@/components/prediction/prediction-results";
+import { Footer } from "@/components/shared/footer";
+import { createEmptyProfile } from "@/lib/ml/default-profile";
+import type {
+  CandidateProfile,
+  IssueItem,
+  PlacementPrediction,
+  ResumeParseResult,
+} from "@/lib/types/placement";
+import { cn } from "@/lib/utils/cn";
+
+type ViewState = "input" | "results";
+type EntryMode = "upload" | "manual";
+
+/**
+ * Full prediction page — handles both resume upload + manual entry flows.
+ */
+export default function PredictionPage() {
+  const [view, setView] = useState<ViewState>("input");
+  const [entryMode, setEntryMode] = useState<EntryMode | null>(null);
+  const [profile, setProfile] = useState<CandidateProfile>(
+    createEmptyProfile(),
+  );
+  const [prediction, setPrediction] = useState<PlacementPrediction | null>(
+    null,
+  );
+  const [issues, setIssues] = useState<IssueItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [parseResult, setParseResult] = useState<ResumeParseResult | null>(
+    null,
+  );
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle resume upload
+  const handleFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      e.target.value = "";
+
+      if (file.type !== "application/pdf") {
+        alert("Please select a PDF file");
+        return;
+      }
+
+      setIsUploading(true);
+
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch("/api/parse-resume", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          alert(
+            `Resume parsing failed (HTTP ${response.status}):\n${errorText}`,
+          );
+          return;
+        }
+
+        const result: ResumeParseResult = await response.json();
+
+        if (result.success && result.extractedData) {
+          const baseProfile = createEmptyProfile();
+          const newProfile: CandidateProfile = { ...baseProfile };
+
+          if (result.extractedData.academic) {
+            const academic = result.extractedData.academic;
+            newProfile.academic = {
+              ...baseProfile.academic,
+              ...(academic.cgpa && academic.cgpa > 0
+                ? { cgpa: academic.cgpa }
+                : {}),
+              ...(academic.tenthPercentage && academic.tenthPercentage > 0
+                ? { tenthPercentage: academic.tenthPercentage }
+                : {}),
+              ...(academic.twelfthPercentage && academic.twelfthPercentage > 0
+                ? { twelfthPercentage: academic.twelfthPercentage }
+                : {}),
+              ...(academic.degreeBranch
+                ? { degreeBranch: academic.degreeBranch }
+                : {}),
+              ...(academic.backlogs !== undefined
+                ? { backlogs: academic.backlogs }
+                : {}),
+            };
+          }
+
+          if (result.extractedData.technical) {
+            const tech = result.extractedData.technical;
+            newProfile.technical = {
+              ...baseProfile.technical,
+              technicalSkills:
+                tech.technicalSkills?.length > 0
+                  ? tech.technicalSkills
+                  : baseProfile.technical.technicalSkills,
+              dsaLevel:
+                tech.dsaLevel && tech.dsaLevel !== "None"
+                  ? tech.dsaLevel
+                  : baseProfile.technical.dsaLevel,
+              projectsCount:
+                (tech.projectsCount ?? 0) > 0
+                  ? tech.projectsCount
+                  : baseProfile.technical.projectsCount,
+              hasInternship:
+                tech.hasInternship || baseProfile.technical.hasInternship,
+              certifications:
+                tech.certifications?.length > 0
+                  ? tech.certifications
+                  : baseProfile.technical.certifications,
+            };
+          }
+
+          if (result.extractedData.experience) {
+            const exp = result.extractedData.experience;
+            newProfile.experience = {
+              ...baseProfile.experience,
+              hackathonsCount:
+                (exp.hackathonsCount ?? 0) > 0
+                  ? exp.hackathonsCount
+                  : baseProfile.experience.hackathonsCount,
+              hasOpenSourceContributions:
+                exp.hasOpenSourceContributions ||
+                baseProfile.experience.hasOpenSourceContributions,
+              resumeATSScore:
+                exp.resumeATSScore > 0
+                  ? exp.resumeATSScore
+                  : baseProfile.experience.resumeATSScore,
+            };
+          }
+
+          setProfile(newProfile);
+          setParseResult(result);
+          setEntryMode("upload");
+        } else {
+          const warnings = result.warnings?.join("\n") || "";
+          const missing = result.missingFields?.join(", ") || "";
+          alert(
+            `Resume parsing failed.\n\n${warnings ? `Reason: ${warnings}\n` : ""}${missing ? `Missing: ${missing}` : ""}`,
+          );
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        alert(`Resume parsing error:\n${message}`);
+      } finally {
+        setIsUploading(false);
+      }
+    },
+    [],
+  );
+
+  const handleAnalyze = useCallback(async () => {
+    setIsLoading(true);
+
+    try {
+      const relevanceResponse = await fetch("/api/check-relevance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          skills: profile.technical.technicalSkills,
+          certifications: profile.technical.certifications,
+        }),
+      });
+      const relevanceData = await relevanceResponse.json();
+      setIssues(relevanceData.issues || []);
+    } catch (error) {
+      console.error("Error checking relevance:", error);
+      setIssues([]);
+    }
+
+    try {
+      const predictionResponse = await fetch("/api/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile }),
+      });
+
+      const predictionData = await predictionResponse.json();
+
+      if (!predictionResponse.ok) {
+        alert(`Prediction failed: ${predictionData.error || "Unknown error"}`);
+        setIsLoading(false);
+        return;
+      }
+
+      setPrediction(predictionData.prediction);
+    } catch (error) {
+      console.error("Prediction request failed:", error);
+      alert("Failed to run prediction. Please try again.");
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(false);
+    setView("results");
+  }, [profile]);
+
+  const handleReset = useCallback(() => {
+    setView("input");
+    setProfile(createEmptyProfile());
+    setPrediction(null);
+    setIssues([]);
+    setEntryMode(null);
+    setParseResult(null);
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-[#FAFBFC] flex flex-col">
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf,application/pdf"
+        onChange={handleFileChange}
+        className="hidden"
+      />
+
+      {/* Upload overlay */}
+      {isUploading && (
+        <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center">
+          <div className="bg-white rounded-2xl p-8 shadow-2xl flex flex-col items-center gap-4 max-w-sm mx-4">
+            <div className="w-16 h-16 rounded-full bg-[#6e44ff]/10 flex items-center justify-center">
+              <Loader2 className="w-8 h-8 text-[#6e44ff] animate-spin" />
+            </div>
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                Parsing Resume
+              </h3>
+              <p className="text-sm text-gray-500">
+                AI is extracting your details...
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Header */}
+      {view === "input" && (
+        <header className="fixed top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-xl border-b border-gray-200">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14">
+            <div className="flex justify-between items-center h-14 sm:h-16">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <Link
+                  href="/"
+                  className="p-2 -ml-2 mr-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                  aria-label="Back to home"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </Link>
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-[#6e44ff]/10 flex items-center justify-center">
+                  {entryMode === "upload" ? (
+                    <ClipboardCheck
+                      className="w-4 h-4 sm:w-5 sm:h-5 text-[#6e44ff]"
+                      fill="currentColor"
+                    />
+                  ) : (
+                    <PenLine
+                      className="w-4 h-4 sm:w-5 sm:h-5 text-[#6e44ff]"
+                      fill="currentColor"
+                    />
+                  )}
+                </div>
+                <span className="text-base sm:text-lg font-semibold text-gray-900">
+                  {entryMode === "upload"
+                    ? "Verify Your Details"
+                    : "Placement Prediction"}
+                </span>
+              </div>
+            </div>
+          </div>
+        </header>
+      )}
+
+      {/* Main Content */}
+      <main
+        className={cn(
+          "max-w-6xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14 pb-10 flex-1",
+          view === "input" ? "pt-22 md:pt-24" : "pt-6",
+        )}
+      >
+        {view === "input" ? (
+          <div className="space-y-8">
+            {/* Entry mode selection if no mode chosen yet */}
+            {!entryMode && (
+              <div className="grid md:grid-cols-2 gap-4 max-w-3xl mx-auto">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
+                  className="group p-6 bg-white rounded-xl border border-gray-200 hover:border-[#6e44ff]/30 hover:shadow-lg hover:shadow-[#6e44ff]/5 transition-all duration-300 text-left"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-[#6e44ff] flex items-center justify-center mb-4 shadow-lg shadow-[#6e44ff]/20">
+                    <Upload className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                    Upload Resume
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    AI extracts your details automatically
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEntryMode("manual")}
+                  className="group p-6 bg-white rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-lg transition-all duration-300 text-left"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-gray-900 flex items-center justify-center mb-4 shadow-lg shadow-gray-900/20">
+                    <PenLine className="w-6 h-6 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                    Enter Manually
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    Fill in your details manually
+                  </p>
+                </button>
+              </div>
+            )}
+
+            {/* Show form when entry mode is selected */}
+            {entryMode && (
+              <>
+                {/* Parse success banner */}
+                {entryMode === "upload" && parseResult?.success && (
+                  <div className="bg-[#6e44ff]/5 border border-[#6e44ff]/20 rounded-2xl p-5">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-[#6e44ff]/10 flex items-center justify-center flex-shrink-0">
+                        <CheckCircle className="w-5 h-5 text-[#6e44ff]" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900">
+                          Resume parsed successfully
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Review the extracted information below and make any
+                          corrections before proceeding.
+                        </p>
+                        {parseResult.missingFields &&
+                          parseResult.missingFields.length > 0 && (
+                            <p className="text-sm text-[#6e44ff] mt-2">
+                              <span className="font-medium">
+                                Please fill manually:
+                              </span>{" "}
+                              {parseResult.missingFields.join(", ")}
+                            </p>
+                          )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Role indicator */}
+                <div className="flex justify-center">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#6e44ff]/10 rounded-full border border-[#6e44ff]/20">
+                    <Briefcase className="w-4 h-4 text-[#6e44ff]" />
+                    <span className="text-sm font-medium text-[#6e44ff]">
+                      Role: Software Developer
+                    </span>
+                  </div>
+                </div>
+
+                {/* Candidate Form */}
+                <CandidateForm
+                  profile={profile}
+                  onProfileChange={setProfile}
+                  onSubmit={handleAnalyze}
+                  isLoading={isLoading}
+                />
+              </>
+            )}
+          </div>
+        ) : (
+          prediction && (
+            <PredictionResults
+              prediction={prediction}
+              profile={profile}
+              onReset={handleReset}
+              issues={issues}
+            />
+          )
+        )}
+      </main>
+
+      {view === "input" && <Footer showDisclaimer />}
+    </div>
+  );
+}

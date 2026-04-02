@@ -8,8 +8,8 @@ import {
   PenLine,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { CandidateForm } from "@/components/forms/candidate-form";
-import { PredictionResults } from "@/components/results/prediction-results";
+import { CandidateForm } from "@/components/prediction/candidate-form";
+import { PredictionResults } from "@/components/prediction/prediction-results";
 import { Footer } from "@/components/shared/footer";
 import { createEmptyProfile } from "@/lib/ml/default-profile";
 import type {

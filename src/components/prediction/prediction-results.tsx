@@ -1,0 +1,1380 @@
+"use client";
+
+import {
+  AlertCircle,
+  AlertOctagon,
+  AlertTriangle,
+  ArrowRight,
+  Bot,
+  Calendar,
+  CheckCircle,
+  ChevronDown,
+  Clock,
+  Loader2,
+  Minus,
+  Target,
+  TrendingDown,
+  TrendingUp,
+  XCircle,
+  Zap,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import type {
+  CandidateProfile,
+  IssueItem,
+  PlacementPrediction,
+} from "@/lib/types/placement";
+import { cn } from "@/lib/utils/cn";
+
+interface AISuggestion {
+  title: string;
+  description: string;
+  priority: "high" | "medium" | "low";
+}
+
+interface PredictionResultsProps {
+  prediction: PlacementPrediction;
+  profile: CandidateProfile;
+  onReset: () => void;
+  issues?: IssueItem[];
+}
+
+// Chart colors - Vibrant shadcn style
+const COLORS = {
+  green: "#16a34a",
+  yellow: "#ca8a04",
+  red: "#dc2626",
+};
+
+// --- Timeline helpers ---
+interface TimelineItem {
+  area: string;
+  current: string;
+  target: string;
+  timeEstimate: string;
+  timeMonths: number;
+  icon:
+    | "dsa"
+    | "internship"
+    | "project"
+    | "skill"
+    | "communication"
+    | "cert"
+    | "aptitude"
+    | "ats"
+    | "interview"
+    | "hackathon"
+    | "opensource";
+}
+
+function computeReadinessTimeline(
+  profile: CandidateProfile,
+  prediction: PlacementPrediction,
+): { items: TimelineItem[]; totalMonths: number; targetProbability: number } {
+  const items: TimelineItem[] = [];
+
+  const dsa = profile.technical.dsaLevel;
+  if (dsa === "None") {
+    items.push({
+      area: "DSA Skills",
+      current: "None",
+      target: "Intermediate",
+      timeEstimate: "~3 months",
+      timeMonths: 3,
+      icon: "dsa",
+    });
+  } else if (dsa === "Basic") {
+    items.push({
+      area: "DSA Skills",
+      current: "Basic",
+      target: "Intermediate",
+      timeEstimate: "~2 months",
+      timeMonths: 2,
+      icon: "dsa",
+    });
+  }
+
+  if (!profile.technical.hasInternship) {
+    items.push({
+      area: "Internship",
+      current: "None",
+      target: "1 internship",
+      timeEstimate: "~2-3 months",
+      timeMonths: 2.5,
+      icon: "internship",
+    });
+  }
+
+  const projects = profile.technical.projectsCount ?? 0;
+  if (projects < 3) {
+    const needed = 3 - projects;
+    items.push({
+      area: "Projects",
+      current: `${projects} projects`,
+      target: "3+ projects",
+      timeEstimate: `~${needed * 3} weeks`,
+      timeMonths: (needed * 3) / 4,
+      icon: "project",
+    });
+  }
+
+  const skills = profile.technical.technicalSkills.length;
+  if (skills < 3) {
+    const needed = 3 - skills;
+    items.push({
+      area: "Technical Skills",
+      current: `${skills} skills`,
+      target: "3+ skills",
+      timeEstimate: `~${needed} month${needed > 1 ? "s" : ""}`,
+      timeMonths: needed,
+      icon: "skill",
+    });
+  }
+
+  if (profile.softSkills.communicationScore < 6) {
+    items.push({
+      area: "Communication",
+      current: `${profile.softSkills.communicationScore}/10`,
+      target: "7+/10",
+      timeEstimate: "~1-2 months",
+      timeMonths: 1.5,
+      icon: "communication",
+    });
+  }
+
+  if (profile.technical.certifications.length === 0) {
+    items.push({
+      area: "Certifications",
+      current: "None",
+      target: "1+ certification",
+      timeEstimate: "~1 month",
+      timeMonths: 1,
+      icon: "cert",
+    });
+  }
+
+  if (profile.softSkills.aptitudeScore < 60) {
+    items.push({
+      area: "Aptitude",
+      current: `${Math.round(profile.softSkills.aptitudeScore)}%`,
+      target: "70%+",
+      timeEstimate: "~1-2 months",
+      timeMonths: 1.5,
+      icon: "aptitude",
+    });
+  }
+
+  if (profile.experience.resumeATSScore < 70) {
+    items.push({
+      area: "Resume ATS",
+      current: `${Math.round(profile.experience.resumeATSScore)}%`,
+      target: "80%+",
+      timeEstimate: "~1 week",
+      timeMonths: 0.25,
+      icon: "ats",
+    });
+  }
+
+  // Sort by time (longest first)
+  items.sort((a, b) => b.timeMonths - a.timeMonths);
+
+  // Total is the max (parallel improvement), not sum
+  const totalMonths =
+    items.length > 0 ? Math.ceil(items[0]?.timeMonths ?? 0) : 0;
+
+  const targetProbability = Math.min(
+    95,
+    prediction.probability + items.length * 5 + totalMonths * 3,
+  );
+
+  return {
+    items,
+    totalMonths,
+    targetProbability: Math.round(targetProbability),
+  };
+}
+
+// --- SHAP-like breakdown helpers ---
+interface ScoreImpactItem {
+  feature: string;
+  impact: number; // positive or negative percentage points
+  explanation: string;
+  type: "positive" | "negative" | "neutral";
+}
+
+function computeScoreBreakdown(
+  profile: CandidateProfile,
+  prediction: PlacementPrediction,
+): ScoreImpactItem[] {
+  const items: ScoreImpactItem[] = [];
+
+  // CGPA impact
+  const cgpa = profile.academic.cgpa ?? 0;
+  if (cgpa >= 8) {
+    items.push({
+      feature: "CGPA",
+      impact: Math.round((cgpa - 7) * 4),
+      explanation: `Strong CGPA of ${cgpa} increased your score`,
+      type: "positive",
+    });
+  } else if (cgpa >= 7) {
+    items.push({
+      feature: "CGPA",
+      impact: Math.round((cgpa - 7) * 3),
+      explanation: `Decent CGPA of ${cgpa} slightly helped`,
+      type: "positive",
+    });
+  } else if (cgpa > 0) {
+    items.push({
+      feature: "CGPA",
+      impact: -Math.round((7 - cgpa) * 4),
+      explanation: `Low CGPA of ${cgpa} reduced your score`,
+      type: "negative",
+    });
+  }
+
+  // Internship impact
+  if (profile.technical.hasInternship) {
+    items.push({
+      feature: "Internship",
+      impact: 18,
+      explanation:
+        "Having internship experience significantly boosted your score",
+      type: "positive",
+    });
+  } else {
+    items.push({
+      feature: "Internship",
+      impact: -15,
+      explanation: "No internship experience reduced your score",
+      type: "negative",
+    });
+  }
+
+  // DSA Level
+  const dsa = profile.technical.dsaLevel;
+  if (dsa === "Advanced") {
+    items.push({
+      feature: "DSA Skills",
+      impact: 15,
+      explanation: "Advanced DSA skills strongly boosted your score",
+      type: "positive",
+    });
+  } else if (dsa === "Intermediate") {
+    items.push({
+      feature: "DSA Skills",
+      impact: 8,
+      explanation: "Intermediate DSA skills helped your score",
+      type: "positive",
+    });
+  } else if (dsa === "Basic") {
+    items.push({
+      feature: "DSA Skills",
+      impact: -8,
+      explanation: "Basic DSA level pulled your score down",
+      type: "negative",
+    });
+  } else {
+    items.push({
+      feature: "DSA Skills",
+      impact: -18,
+      explanation: "No DSA knowledge significantly reduced your score",
+      type: "negative",
+    });
+  }
+
+  // Technical skills
+  const skills = profile.technical.technicalSkills.length;
+  if (skills >= 5) {
+    items.push({
+      feature: "Technical Skills",
+      impact: Math.min(12, skills * 2),
+      explanation: `${skills} technical skills gave a strong boost`,
+      type: "positive",
+    });
+  } else if (skills >= 3) {
+    items.push({
+      feature: "Technical Skills",
+      impact: skills * 2,
+      explanation: `${skills} technical skills helped your score`,
+      type: "positive",
+    });
+  } else {
+    items.push({
+      feature: "Technical Skills",
+      impact: -(3 - skills) * 5,
+      explanation: `Only ${skills} technical skill${skills !== 1 ? "s" : ""} hurt your score`,
+      type: "negative",
+    });
+  }
+
+  // Projects
+  const projects = profile.technical.projectsCount ?? 0;
+  if (projects >= 3) {
+    items.push({
+      feature: "Projects",
+      impact: Math.min(10, projects * 3),
+      explanation: `${projects} projects demonstrated practical experience`,
+      type: "positive",
+    });
+  } else if (projects > 0) {
+    items.push({
+      feature: "Projects",
+      impact: projects * 2 - 4,
+      explanation: `Only ${projects} project${projects > 1 ? "s" : ""} — more would help`,
+      type: projects >= 2 ? "neutral" : "negative",
+    });
+  } else {
+    items.push({
+      feature: "Projects",
+      impact: -10,
+      explanation: "No projects significantly reduced your score",
+      type: "negative",
+    });
+  }
+
+  // Backlogs
+  const backlogs = profile.academic.backlogs ?? 0;
+  if (backlogs > 0) {
+    items.push({
+      feature: "Backlogs",
+      impact: -backlogs * 8,
+      explanation: `${backlogs} active backlog${backlogs > 1 ? "s" : ""} heavily penalized your score`,
+      type: "negative",
+    });
+  }
+
+  // Certifications
+  const certs = profile.technical.certifications.length;
+  if (certs >= 2) {
+    items.push({
+      feature: "Certifications",
+      impact: 6,
+      explanation: `${certs} certifications showed commitment to learning`,
+      type: "positive",
+    });
+  } else if (certs === 1) {
+    items.push({
+      feature: "Certifications",
+      impact: 3,
+      explanation: "1 certification gave a slight boost",
+      type: "positive",
+    });
+  }
+
+  // Aptitude
+  const apt = profile.softSkills.aptitudeScore;
+  if (apt >= 80) {
+    items.push({
+      feature: "Aptitude Score",
+      impact: 5,
+      explanation: `Score of ${Math.round(apt)}% showed strong analytical ability`,
+      type: "positive",
+    });
+  } else if (apt < 50) {
+    items.push({
+      feature: "Aptitude Score",
+      impact: -6,
+      explanation: `Score of ${Math.round(apt)}% indicates need for improvement`,
+      type: "negative",
+    });
+  }
+
+  // Communication
+  const comm = profile.softSkills.communicationScore;
+  if (comm >= 8) {
+    items.push({
+      feature: "Communication",
+      impact: 4,
+      explanation: `Strong communication score of ${comm}/10`,
+      type: "positive",
+    });
+  } else if (comm < 5) {
+    items.push({
+      feature: "Communication",
+      impact: -5,
+      explanation: `Communication score of ${comm}/10 needs improvement`,
+      type: "negative",
+    });
+  }
+
+  // Sort by absolute impact
+  items.sort((a, b) => Math.abs(b.impact) - Math.abs(a.impact));
+
+  return items;
+}
+
+/**
+ * Prediction Results Display with Analysis.
+ */
+export function PredictionResults({
+  prediction,
+  profile,
+  onReset,
+  issues = [],
+}: PredictionResultsProps) {
+  const [currentSuggestionIndex, setCurrentSuggestionIndex] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([]);
+  const [isLoadingAI, setIsLoadingAI] = useState(true);
+  const [expandedSuggestions, setExpandedSuggestions] = useState<Set<number>>(
+    new Set(),
+  );
+  const [expandedSections, setExpandedSections] = useState<{
+    issues: boolean;
+    strengths: boolean;
+    weaknesses: boolean;
+  }>({ issues: false, strengths: false, weaknesses: false });
+
+  const toggleSection = (section: "issues" | "strengths" | "weaknesses") => {
+    setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
+  };
+
+  const toggleSuggestion = (index: number) => {
+    setExpandedSuggestions((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
+
+  // Fetch AI suggestions
+  useEffect(() => {
+    const fetchAISuggestions = async () => {
+      try {
+        setIsLoadingAI(true);
+        const response = await fetch("/api/ai-suggestions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ profile, prediction }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setAiSuggestions(data.suggestions || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch AI suggestions:", error);
+      } finally {
+        setIsLoadingAI(false);
+      }
+    };
+
+    fetchAISuggestions();
+  }, [profile, prediction]);
+
+  // Cycle through suggestions every 5 seconds with animation
+  useEffect(() => {
+    if (prediction.improvementSuggestions.length <= 1) return;
+
+    const interval = setInterval(() => {
+      setIsAnimating(true);
+      setTimeout(() => {
+        setCurrentSuggestionIndex(
+          (prev) => (prev + 1) % prediction.improvementSuggestions.length,
+        );
+        setIsAnimating(false);
+      }, 300);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [prediction.improvementSuggestions.length]);
+
+  const probabilityColor =
+    prediction.probability >= 70
+      ? COLORS.green
+      : prediction.probability >= 40
+        ? COLORS.yellow
+        : COLORS.red;
+
+  const riskIcon =
+    prediction.riskCategory === "Low" ? (
+      <CheckCircle className="w-5 h-5 text-green-500" />
+    ) : prediction.riskCategory === "Medium" ? (
+      <AlertTriangle className="w-5 h-5 text-yellow-500" />
+    ) : (
+      <XCircle className="w-5 h-5 text-red-500" />
+    );
+
+  // Compute enhanced data
+  const timeline = computeReadinessTimeline(profile, prediction);
+  const scoreBreakdown = computeScoreBreakdown(profile, prediction);
+
+  return (
+    <div className="space-y-8">
+      {/* Main Result Card */}
+      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+        <div className="p-8">
+          <div className="flex flex-col md:flex-row items-center gap-8">
+            {/* Probability Circle */}
+            <div className="relative w-48 h-48">
+              <svg
+                className="w-full h-full transform -rotate-90"
+                role="img"
+                aria-label="Placement probability ring chart"
+              >
+                <title>Placement probability</title>
+                <circle
+                  cx="96"
+                  cy="96"
+                  r="88"
+                  stroke="currentColor"
+                  strokeWidth="12"
+                  fill="none"
+                  className="text-[hsl(240,4.8%,95.9%)]"
+                />
+                <circle
+                  cx="96"
+                  cy="96"
+                  r="88"
+                  stroke={probabilityColor}
+                  strokeWidth="12"
+                  fill="none"
+                  strokeDasharray={`${prediction.probability * 5.53} 553`}
+                  strokeLinecap="round"
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span
+                  className="text-5xl font-bold"
+                  style={{ color: probabilityColor }}
+                >
+                  {prediction.probability}%
+                </span>
+                <span className="text-sm text-[hsl(240,3.8%,46.1%)] mt-1">
+                  Probability
+                </span>
+              </div>
+            </div>
+
+            {/* Summary Info */}
+            <div className="flex-1 text-center md:text-left">
+              <h2 className="text-2xl font-bold text-[hsl(240,10%,3.9%)] mb-2">
+                Placement Prediction Result
+              </h2>
+
+              <div className="flex items-center justify-center md:justify-start gap-2 mb-4">
+                {riskIcon}
+                <span
+                  className={cn(
+                    "text-lg font-semibold",
+                    prediction.riskCategory === "Low" && "text-emerald-600",
+                    prediction.riskCategory === "Medium" && "text-amber-600",
+                    prediction.riskCategory === "High" && "text-red-600",
+                  )}
+                >
+                  {prediction.riskCategory} Risk
+                </span>
+              </div>
+
+              <p
+                className={cn(
+                  "text-[hsl(240,3.8%,46.1%)] max-w-lg transition-all duration-300",
+                  isAnimating
+                    ? "opacity-0 translate-y-2"
+                    : "opacity-100 translate-y-0",
+                )}
+              >
+                {prediction.improvementSuggestions.length > 0
+                  ? prediction.improvementSuggestions[currentSuggestionIndex]
+                  : "Analyze your profile to identify areas for improvement."}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Disclaimer */}
+        <div className="px-8 py-4 bg-[hsl(240,4.8%,95.9%)] border-t border-gray-200">
+          <div className="flex items-start gap-2 text-sm text-[hsl(240,3.8%,46.1%)]">
+            <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+            <p>
+              <strong>Disclaimer:</strong> This prediction is probabilistic, not
+              deterministic. The model may have biases based on training data.
+              Use this as guidance only, not as a definitive assessment of your
+              placement chances.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ========== NEW: Placement Readiness Timeline ========== */}
+      {timeline.items.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold mb-2 flex items-center gap-2 text-[hsl(240,10%,3.9%)]">
+            <Calendar className="w-5 h-5 text-[#6e44ff]" />
+            Placement Readiness Timeline
+          </h3>
+          <p className="text-sm text-gray-500 mb-5">
+            You can realistically reach{" "}
+            <span className="font-semibold text-emerald-600">
+              {timeline.targetProbability}%
+            </span>{" "}
+            in{" "}
+            <span className="font-semibold text-[#6e44ff]">
+              ~{timeline.totalMonths} month
+              {timeline.totalMonths !== 1 ? "s" : ""}
+            </span>
+          </p>
+
+          {/* Progress bar: current → target */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between text-xs text-gray-500 mb-1.5">
+              <span>
+                Current:{" "}
+                <span
+                  className="font-semibold"
+                  style={{ color: probabilityColor }}
+                >
+                  {prediction.probability}%
+                </span>
+              </span>
+              <span>
+                Target:{" "}
+                <span className="font-semibold text-emerald-600">
+                  {timeline.targetProbability}%
+                </span>
+              </span>
+            </div>
+            <div className="relative h-3 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className="absolute h-full rounded-full transition-all duration-700 bg-gradient-to-r from-[#6e44ff] to-[#8b6aff]"
+                style={{ width: `${prediction.probability}%` }}
+              />
+              <div
+                className="absolute h-full rounded-full bg-emerald-200/50 border-r-2 border-emerald-500"
+                style={{ width: `${timeline.targetProbability}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Timeline items */}
+          <div className="space-y-3">
+            {timeline.items.map((item, index) => (
+              <div
+                key={item.area}
+                className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100 group hover:border-[#6e44ff]/20 hover:bg-[#6e44ff]/5 transition-all"
+              >
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#6e44ff]/10 text-[#6e44ff] flex-shrink-0">
+                  <span className="text-xs font-bold">{index + 1}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-900">
+                      {item.area}
+                    </span>
+                    <ArrowRight className="w-3 h-3 text-gray-400" />
+                    <span className="text-sm text-emerald-600 font-medium">
+                      {item.target}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Currently:{" "}
+                    <span className="text-red-500">{item.current}</span>
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 px-2.5 py-1 bg-[#6e44ff]/10 rounded-full flex-shrink-0">
+                  <Clock className="w-3 h-3 text-[#6e44ff]" />
+                  <span className="text-xs font-medium text-[#6e44ff]">
+                    {item.timeEstimate}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ========== NEW: SHAP-like Probability Breakdown ========== */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold mb-1 flex items-center gap-2 text-[hsl(240,10%,3.9%)]">
+          <Zap className="w-5 h-5 text-amber-500" />
+          Probability Breakdown
+        </h3>
+        <p className="text-sm text-gray-500 mb-5">
+          How each factor contributed to your {prediction.probability}% score
+        </p>
+
+        <div className="space-y-3">
+          {scoreBreakdown.map((item) => {
+            const maxAbsImpact = Math.max(
+              ...scoreBreakdown.map((i) => Math.abs(i.impact)),
+              1,
+            );
+            const barWidth = Math.min(
+              100,
+              (Math.abs(item.impact) / maxAbsImpact) * 100,
+            );
+
+            return (
+              <div key={item.feature} className="group">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2">
+                    {item.type === "positive" ? (
+                      <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+                    ) : item.type === "negative" ? (
+                      <TrendingDown className="w-3.5 h-3.5 text-red-500" />
+                    ) : (
+                      <Minus className="w-3.5 h-3.5 text-gray-400" />
+                    )}
+                    <span className="text-sm font-medium text-gray-900">
+                      {item.feature}
+                    </span>
+                  </div>
+                  <span
+                    className={cn(
+                      "text-sm font-bold",
+                      item.type === "positive" && "text-emerald-600",
+                      item.type === "negative" && "text-red-600",
+                      item.type === "neutral" && "text-gray-500",
+                    )}
+                  >
+                    {item.impact > 0 ? "+" : ""}
+                    {item.impact}%
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all duration-500",
+                        item.type === "positive" &&
+                          "bg-gradient-to-r from-emerald-400 to-emerald-500",
+                        item.type === "negative" &&
+                          "bg-gradient-to-r from-red-400 to-red-500",
+                        item.type === "neutral" &&
+                          "bg-gradient-to-r from-gray-300 to-gray-400",
+                      )}
+                      style={{ width: `${barWidth}%` }}
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {item.explanation}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Legend */}
+        <div className="flex flex-wrap items-center gap-4 mt-5 pt-4 border-t border-gray-100 text-xs text-gray-500">
+          <span className="flex items-center gap-1.5">
+            <div className="w-3 h-1.5 rounded-full bg-emerald-500" />
+            Boosted score
+          </span>
+          <span className="flex items-center gap-1.5">
+            <div className="w-3 h-1.5 rounded-full bg-red-500" />
+            Reduced score
+          </span>
+          <span className="text-gray-400 italic">Hover for details</span>
+        </div>
+      </div>
+
+      {/* Analytics Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Skills Distribution Pie Chart */}
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[hsl(240,10%,3.9%)]">
+            <TrendingUp className="w-5 h-5 text-blue-500" />
+            Skills Distribution
+          </h3>
+          <div className="flex items-center justify-center gap-4 sm:gap-8">
+            <div className="relative w-36 h-36 sm:w-52 sm:h-52 flex-shrink-0">
+              <svg
+                viewBox="0 0 100 100"
+                className="w-full h-full -rotate-90"
+                role="img"
+                aria-label="Skills distribution donut chart"
+              >
+                <title>Skills distribution</title>
+                {(() => {
+                  const academicScore = Math.max(
+                    5,
+                    ((profile.academic?.cgpa ?? 0) / 10) * 100,
+                  );
+                  const technicalScore = Math.max(
+                    5,
+                    Math.min(
+                      100,
+                      (profile.technical?.technicalSkills?.length ?? 0) * 15,
+                    ),
+                  );
+                  const dsaScore = Math.max(
+                    5,
+                    profile.technical?.dsaLevel === "Advanced"
+                      ? 100
+                      : profile.technical?.dsaLevel === "Intermediate"
+                        ? 70
+                        : profile.technical?.dsaLevel === "Basic"
+                          ? 40
+                          : 10,
+                  );
+                  const softScore = Math.max(
+                    5,
+                    ((profile.softSkills?.communicationScore ?? 0) / 10) * 100,
+                  );
+                  const expScore = Math.max(
+                    5,
+                    Math.min(
+                      100,
+                      (profile.experience?.hackathonsCount ?? 0) * 25 +
+                        (profile.technical?.hasInternship ? 50 : 0),
+                    ),
+                  );
+
+                  const total =
+                    academicScore +
+                    technicalScore +
+                    dsaScore +
+                    softScore +
+                    expScore;
+                  const scores = [
+                    { value: academicScore, color: "#8b5cf6" },
+                    { value: technicalScore, color: "#06b6d4" },
+                    { value: dsaScore, color: "#10b981" },
+                    { value: softScore, color: "#f59e0b" },
+                    { value: expScore, color: "#ef4444" },
+                  ];
+
+                  let cumulativePercent = 0;
+                  const radius = 30;
+                  const circumference = 2 * Math.PI * radius;
+
+                  return scores.map((score) => {
+                    const percent = (score.value / total) * 100;
+                    const strokeDasharray = `${(percent / 100) * circumference} ${circumference}`;
+                    const strokeDashoffset = -(
+                      (cumulativePercent / 100) *
+                      circumference
+                    );
+                    cumulativePercent += percent;
+
+                    return (
+                      <circle
+                        key={score.color}
+                        cx="50"
+                        cy="50"
+                        r={radius}
+                        fill="none"
+                        stroke={score.color}
+                        strokeWidth="24"
+                        strokeDasharray={strokeDasharray}
+                        strokeDashoffset={strokeDashoffset}
+                        className="transition-all duration-500"
+                      />
+                    );
+                  });
+                })()}
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-sm font-bold text-gray-700">
+                  {prediction.probability}%
+                </span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {[
+                {
+                  label: "Academics",
+                  color: "bg-violet-500",
+                  value: profile.academic?.cgpa?.toFixed(1) ?? "0",
+                },
+                {
+                  label: "Technical",
+                  color: "bg-cyan-500",
+                  value: `${profile.technical?.technicalSkills?.length ?? 0} skills`,
+                },
+                {
+                  label: "DSA",
+                  color: "bg-emerald-500",
+                  value: profile.technical?.dsaLevel ?? "None",
+                },
+                {
+                  label: "Soft Skills",
+                  color: "bg-amber-500",
+                  value: `${profile.softSkills?.communicationScore ?? 0}/10`,
+                },
+                {
+                  label: "Experience",
+                  color: "bg-red-500",
+                  value: profile.technical?.hasInternship ? "Yes" : "No",
+                },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="flex items-center gap-2 text-sm"
+                >
+                  <span
+                    className={cn(
+                      "w-2.5 h-2.5 rounded-full flex-shrink-0",
+                      item.color,
+                    )}
+                  />
+                  <span className="text-gray-600">{item.label}:</span>
+                  <span className="text-gray-900 font-medium">
+                    {item.value}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Key Factor Impact */}
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[hsl(240,10%,3.9%)]">
+            <Target className="w-5 h-5 text-emerald-500" />
+            Key Factor Impact
+          </h3>
+          <div className="space-y-2">
+            {(() => {
+              const factors = [
+                {
+                  name: "CGPA",
+                  score: profile.academic?.cgpa ?? 0,
+                  target: 7.5,
+                  max: 10,
+                  impact:
+                    (profile.academic?.cgpa ?? 0) >= 7.5
+                      ? "positive"
+                      : (profile.academic?.cgpa ?? 0) >= 6
+                        ? "neutral"
+                        : "negative",
+                },
+                {
+                  name: "DSA Level",
+                  score:
+                    profile.technical?.dsaLevel === "Advanced"
+                      ? 10
+                      : profile.technical?.dsaLevel === "Intermediate"
+                        ? 7
+                        : profile.technical?.dsaLevel === "Basic"
+                          ? 4
+                          : 1,
+                  target: 7,
+                  max: 10,
+                  impact:
+                    profile.technical?.dsaLevel === "Advanced" ||
+                    profile.technical?.dsaLevel === "Intermediate"
+                      ? "positive"
+                      : "negative",
+                },
+                {
+                  name: "Projects",
+                  score: Math.min(
+                    10,
+                    (profile.technical?.projectsCount ?? 0) * 2.5,
+                  ),
+                  target: 7.5,
+                  max: 10,
+                  impact:
+                    (profile.technical?.projectsCount ?? 0) >= 3
+                      ? "positive"
+                      : (profile.technical?.projectsCount ?? 0) >= 2
+                        ? "neutral"
+                        : "negative",
+                },
+                {
+                  name: "Internship",
+                  score: profile.technical?.hasInternship ? 10 : 0,
+                  target: 10,
+                  max: 10,
+                  impact: profile.technical?.hasInternship
+                    ? "positive"
+                    : "negative",
+                },
+                {
+                  name: "Tech Skills",
+                  score: Math.min(
+                    10,
+                    (profile.technical?.technicalSkills?.length ?? 0) * 2,
+                  ),
+                  target: 6,
+                  max: 10,
+                  impact:
+                    (profile.technical?.technicalSkills?.length ?? 0) >= 4
+                      ? "positive"
+                      : (profile.technical?.technicalSkills?.length ?? 0) >= 2
+                        ? "neutral"
+                        : "negative",
+                },
+              ];
+
+              return factors.map((factor) => (
+                <div key={factor.name} className="flex items-center gap-2">
+                  <div className="w-20 text-xs text-[hsl(240,3.8%,46.1%)] flex-shrink-0">
+                    {factor.name}
+                  </div>
+                  <div className="flex-1 relative h-6 bg-gray-100 rounded-full overflow-hidden">
+                    {/* Target line */}
+                    <div
+                      className="absolute top-0 bottom-0 w-0.5 bg-gray-400 z-10"
+                      style={{ left: `${(factor.target / factor.max) * 100}%` }}
+                    />
+                    {/* Score bar */}
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all duration-500",
+                        factor.impact === "positive" &&
+                          "bg-gradient-to-r from-emerald-400 to-emerald-500",
+                        factor.impact === "neutral" &&
+                          "bg-gradient-to-r from-amber-400 to-amber-500",
+                        factor.impact === "negative" &&
+                          "bg-gradient-to-r from-red-400 to-red-500",
+                      )}
+                      style={{ width: `${(factor.score / factor.max) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              ));
+            })()}
+          </div>
+          <div className="flex flex-wrap items-center gap-3 mt-4 pt-4 border-t border-gray-100 text-xs text-[hsl(240,3.8%,46.1%)]">
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" /> Better
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-amber-500" /> Neutral
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-red-500" /> Needs Work
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-0.5 bg-gray-400" /> Target
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Issues, Strengths & Weaknesses */}
+      <div className="space-y-6">
+        {/* Issues - Irrelevant Skills/Certifications */}
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <button
+            type="button"
+            onClick={() => toggleSection("issues")}
+            className="w-full p-6 flex items-center justify-between hover:bg-gray-50 transition-colors"
+          >
+            <h3 className="text-lg font-semibold flex items-center gap-2 text-orange-600">
+              <AlertOctagon className="w-5 h-5" />
+              Issues ({issues.length})
+            </h3>
+            <ChevronDown
+              className={cn(
+                "w-5 h-5 text-gray-500 transition-transform duration-200",
+                expandedSections.issues && "rotate-180",
+              )}
+            />
+          </button>
+          <div
+            className={cn(
+              "overflow-hidden transition-all duration-300",
+              expandedSections.issues
+                ? "max-h-[2000px] opacity-100"
+                : "max-h-0 opacity-0",
+            )}
+          >
+            <div className="px-6 pb-6">
+              {issues.length > 0 ? (
+                <>
+                  <p className="text-sm text-[hsl(240,3.8%,46.1%)] mb-4">
+                    The following skills or certifications may not be relevant
+                    for a Software Developer role:
+                  </p>
+                  <ul className="space-y-3">
+                    {issues.map((issue) => (
+                      <li
+                        key={`${issue.type}-${issue.name}`}
+                        className="p-3 bg-orange-50 rounded-lg border border-orange-100"
+                      >
+                        <div className="flex items-start gap-2">
+                          <XCircle className="w-4 h-4 text-orange-500 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <span className="font-medium text-[hsl(240,10%,3.9%)]">
+                              {issue.name}
+                            </span>
+                            <span
+                              className={cn(
+                                "ml-2 text-xs px-2 py-0.5 rounded-full",
+                                issue.type === "skill"
+                                  ? "bg-blue-100 text-blue-700"
+                                  : "bg-purple-100 text-purple-700",
+                              )}
+                            >
+                              {issue.type === "skill"
+                                ? "Skill"
+                                : "Certification"}
+                            </span>
+                            <p className="text-sm text-[hsl(240,3.8%,46.1%)] mt-1">
+                              {issue.reason}
+                            </p>
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <p className="text-[hsl(240,3.8%,46.1%)] text-center py-4">
+                  Great! All your skills and certifications are relevant for a
+                  Software Developer role.
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Strengths & Areas to Improve */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          {/* Strengths */}
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => toggleSection("strengths")}
+              className="w-full p-6 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            >
+              <h3 className="text-lg font-semibold flex items-center gap-2 text-emerald-600">
+                <CheckCircle className="w-5 h-5" />
+                Your Strengths ({prediction.strengths.length})
+              </h3>
+              <ChevronDown
+                className={cn(
+                  "w-5 h-5 text-gray-500 transition-transform duration-200",
+                  expandedSections.strengths && "rotate-180",
+                )}
+              />
+            </button>
+            <div
+              className={cn(
+                "overflow-hidden transition-all duration-300",
+                expandedSections.strengths
+                  ? "max-h-[2000px] opacity-100"
+                  : "max-h-0 opacity-0",
+              )}
+            >
+              <div className="px-6 pb-6">
+                {prediction.strengths.length > 0 ? (
+                  <ul className="space-y-3">
+                    {prediction.strengths.map((strength) => (
+                      <li
+                        key={`${strength.area}-${strength.value}`}
+                        className="flex items-start gap-3 p-3 bg-emerald-50 rounded-lg border border-emerald-100"
+                      >
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 mt-2" />
+                        <div>
+                          <span className="font-medium text-[hsl(240,10%,3.9%)]">
+                            {strength.area}
+                          </span>
+                          <span className="text-[hsl(240,3.8%,46.1%)] ml-2">
+                            — {strength.value}
+                          </span>
+                          <span
+                            className={cn(
+                              "ml-2 text-xs px-2 py-0.5 rounded-full",
+                              strength.impact === "High" &&
+                                "bg-emerald-200 text-emerald-800",
+                              strength.impact === "Medium" &&
+                                "bg-amber-200 text-amber-800",
+                              strength.impact === "Low" &&
+                                "bg-gray-200 text-gray-700",
+                            )}
+                          >
+                            {strength.impact} Impact
+                          </span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-[hsl(240,3.8%,46.1%)] text-center py-4">
+                    No significant strengths identified. Focus on building your
+                    profile.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Areas to Improve */}
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => toggleSection("weaknesses")}
+              className="w-full p-6 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            >
+              <h3 className="text-lg font-semibold flex items-center gap-2 text-red-600">
+                <AlertTriangle className="w-5 h-5" />
+                Areas to Improve ({prediction.weaknesses.length})
+              </h3>
+              <ChevronDown
+                className={cn(
+                  "w-5 h-5 text-gray-500 transition-transform duration-200",
+                  expandedSections.weaknesses && "rotate-180",
+                )}
+              />
+            </button>
+            <div
+              className={cn(
+                "overflow-hidden transition-all duration-300",
+                expandedSections.weaknesses
+                  ? "max-h-[2000px] opacity-100"
+                  : "max-h-0 opacity-0",
+              )}
+            >
+              <div className="px-6 pb-6">
+                {prediction.weaknesses.length > 0 ? (
+                  <ul className="space-y-3">
+                    {prediction.weaknesses.map((weakness) => (
+                      <li
+                        key={`${weakness.area}-${weakness.currentValue}`}
+                        className="p-3 bg-red-50 rounded-lg border border-red-100"
+                      >
+                        <div className="flex items-start gap-2 mb-2">
+                          <ArrowRight className="w-4 h-4 text-red-500 mt-0.5" />
+                          <div>
+                            <span className="font-medium text-[hsl(240,10%,3.9%)]">
+                              {weakness.area}
+                            </span>
+                            <span
+                              className={cn(
+                                "ml-2 text-xs px-2 py-0.5 rounded-full",
+                                weakness.priority === "Critical" &&
+                                  "bg-red-200 text-red-800",
+                                weakness.priority === "High" &&
+                                  "bg-orange-200 text-orange-800",
+                                weakness.priority === "Medium" &&
+                                  "bg-amber-200 text-amber-800",
+                                weakness.priority === "Low" &&
+                                  "bg-gray-200 text-gray-700",
+                              )}
+                            >
+                              {weakness.priority} Priority
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-sm text-[hsl(240,3.8%,46.1%)] ml-6">
+                          Current:{" "}
+                          <span className="text-red-600">
+                            {weakness.currentValue}
+                          </span>
+                          {" → "}
+                          Target:{" "}
+                          <span className="text-emerald-600">
+                            {weakness.targetValue}
+                          </span>
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-[hsl(240,3.8%,46.1%)] text-center py-4">
+                    Great! No significant weaknesses identified.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* AI-Powered Suggestions */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-[hsl(240,10%,3.9%)]">
+          <Bot className="w-5 h-5 text-purple-600" />
+          Personalized Suggestions
+        </h3>
+        {isLoadingAI ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-purple-500 mr-2" />
+            <span className="text-[hsl(240,3.8%,46.1%)]">
+              Generating personalized suggestions...
+            </span>
+          </div>
+        ) : aiSuggestions.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {aiSuggestions.map((suggestion, index) => {
+              const isExpanded = expandedSuggestions.has(index);
+              const shouldTruncate = suggestion.description.length > 80;
+              const displayText =
+                isExpanded || !shouldTruncate
+                  ? suggestion.description
+                  : suggestion.description.slice(0, 80);
+
+              return (
+                <div
+                  key={`${suggestion.title}-${suggestion.priority}`}
+                  className={cn(
+                    "p-4 rounded-lg border",
+                    suggestion.priority === "high" &&
+                      "bg-purple-50 border-purple-200",
+                    suggestion.priority === "medium" &&
+                      "bg-blue-50 border-blue-200",
+                    suggestion.priority === "low" &&
+                      "bg-gray-50 border-gray-200",
+                  )}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <h4 className="font-medium text-[hsl(240,10%,3.9%)]">
+                      {suggestion.title}
+                    </h4>
+                    <span
+                      className={cn(
+                        "text-xs px-2 py-0.5 rounded-full flex-shrink-0 ml-2",
+                        suggestion.priority === "high" &&
+                          "bg-purple-200 text-purple-800",
+                        suggestion.priority === "medium" &&
+                          "bg-blue-200 text-blue-800",
+                        suggestion.priority === "low" &&
+                          "bg-gray-200 text-gray-700",
+                      )}
+                    >
+                      {suggestion.priority}
+                    </span>
+                  </div>
+                  <p className="text-sm text-[hsl(240,3.8%,46.1%)]">
+                    {displayText}
+                    {shouldTruncate && !isExpanded && "... "}
+                    {shouldTruncate && (
+                      <button
+                        type="button"
+                        onClick={() => toggleSuggestion(index)}
+                        className="text-purple-600 hover:text-purple-800 font-medium ml-1"
+                      >
+                        {isExpanded ? "show less" : "read more"}
+                      </button>
+                    )}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-[hsl(240,3.8%,46.1%)] text-center py-4">
+            No suggestions available at this time.
+          </p>
+        )}
+      </div>
+
+      {/* Action Button */}
+      <div className="flex justify-center">
+        <button
+          type="button"
+          onClick={onReset}
+          className={cn(
+            "px-8 py-3 rounded-lg font-semibold",
+            "bg-[hsl(240,5.9%,10%)]",
+            "text-white",
+            "hover:bg-[hsl(240,5.9%,20%)]",
+            "transition-colors",
+          )}
+        >
+          Analyze Another Profile
+        </button>
+      </div>
+    </div>
+  );
+}
