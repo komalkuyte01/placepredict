@@ -216,7 +216,7 @@ export function LandingPage() {
               </span>
               <span className="sm:hidden">Gemini AI & ML Powered</span>
             </div>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold text-gray-900 leading-[1.15] sm:leading-[1.1] tracking-tight mb-4 sm:mb-6">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-[1.15] sm:leading-[1.1] tracking-tight mb-4 sm:mb-6">
               Know Your <span className="text-[#6e44ff]">Placement</span>
               <br />
               Chances Today

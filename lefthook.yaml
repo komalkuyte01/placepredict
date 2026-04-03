@@ -2,5 +2,5 @@ pre-commit:
   commands:
     check:
       glob: "*.{css,js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc}"
-      run: /c/Users/komal/.bun/bin/bunx @biomejs/biome check --write --no-errors-on-unmatched --files-ignore-unknown=true --colors=off {staged_files}
+      run: npx --no-install @biomejs/biome check --write --no-errors-on-unmatched --files-ignore-unknown=true --colors=off {staged_files}
       stage_fixed: true

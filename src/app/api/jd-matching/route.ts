@@ -17,19 +17,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const { PDFParse } = await import("pdf-parse");
+
     // Extract text from files
     let jdContent = jdText?.trim() || "";
     if (jdFile) {
-      const pdfParse = (await import("pdf-parse")).default;
-      const jdBuffer = Buffer.from(await jdFile.arrayBuffer());
-      const jdParsed = await pdfParse(jdBuffer);
-      jdContent = jdParsed.text;
+      const jdParser = new PDFParse({
+        data: new Uint8Array(await jdFile.arrayBuffer()),
+      });
+      const jdResult = await jdParser.getText();
+      jdContent = jdResult.text;
+      await jdParser.destroy();
     }
 
-    const pdfParse = (await import("pdf-parse")).default;
-    const resumeBuffer = Buffer.from(await resumeFile.arrayBuffer());
-    const resumeParsed = await pdfParse(resumeBuffer);
-    const resumeContent = resumeParsed.text;
+    const resumeParser = new PDFParse({
+      data: new Uint8Array(await resumeFile.arrayBuffer()),
+    });
+    const resumeResult = await resumeParser.getText();
+    const resumeContent = resumeResult.text;
+    await resumeParser.destroy();
 
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 

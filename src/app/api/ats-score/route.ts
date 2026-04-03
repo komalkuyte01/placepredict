@@ -15,10 +15,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const pdfParse = (await import("pdf-parse")).default;
+    const { PDFParse } = await import("pdf-parse");
     const resumeBuffer = Buffer.from(await resumeFile.arrayBuffer());
-    const resumeParsed = await pdfParse(resumeBuffer);
-    const resumeContent = resumeParsed.text;
+    const parser = new PDFParse({ data: new Uint8Array(resumeBuffer) });
+    const textResult = await parser.getText();
+    const resumeContent = textResult.text;
+    await parser.destroy();
 
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 

@@ -16,11 +16,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const pdfParse = (await import("pdf-parse")).default;
-    const bufferA = Buffer.from(await resumeA.arrayBuffer());
-    const parsedA = await pdfParse(bufferA);
-    const bufferB = Buffer.from(await resumeB.arrayBuffer());
-    const parsedB = await pdfParse(bufferB);
+    const { PDFParse } = await import("pdf-parse");
+    const parserA = new PDFParse({
+      data: new Uint8Array(await resumeA.arrayBuffer()),
+    });
+    const parsedA = await parserA.getText();
+    await parserA.destroy();
+    const parserB = new PDFParse({
+      data: new Uint8Array(await resumeB.arrayBuffer()),
+    });
+    const parsedB = await parserB.getText();
+    await parserB.destroy();
 
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
