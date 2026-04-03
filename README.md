@@ -1,5 +1,5 @@
 ﻿<p align="center">
-  <h1 align="center">GradeSight</h1>
+  <h1 align="center">PlacePredict</h1>
   <p align="center">
     AI-Powered Student Placement Probability Predictor
     <br />
@@ -19,7 +19,7 @@
 
 ## 📌 About
 
-**GradeSight** is a smart web application that predicts a student's chances of getting placed (hired) in the tech industry as a Software Developer.
+**PlacePredict** is a smart web application that predicts a student's chances of getting placed (hired) in the tech industry as a Software Developer.
 
 A student simply uploads their resume or fills in their profile, and the system:
 1. **Reads the resume** using Google Gemini AI — just like a human recruiter would.
@@ -60,7 +60,7 @@ A student simply uploads their resume or fills in their profile, and the system:
 ## 📁 Project Structure
 
 ```
-gradesight/
+PlacePredict/
 ├── public/                         # Static assets
 ├── src/
 │   ├── app/                        # Next.js App Router
@@ -108,7 +108,7 @@ gradesight/
 ```bash
 # 1. Clone the repository
 git clone <repository-url>
-cd gradesight
+cd placepredict
 
 # 2. Install dependencies
 npm install
@@ -148,7 +148,7 @@ Open **[http://localhost:3000](http://localhost:3000)** in your browser.
 
 ## 🤖 ML Pipeline (Production)
 
-GradeSight uses an **offline training + online inference** architecture:
+PlacePredict uses an **offline training + online inference** architecture:
 
 1. Download training dataset from **Vercel Blob**.
 2. Train models locally.
