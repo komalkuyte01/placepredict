@@ -1,6 +1,7 @@
 "use client";
 
 import { GraduationCap } from "lucide-react";
+import Link from "next/link";
 
 interface FooterProps {
   showDisclaimer?: boolean;
@@ -8,27 +9,120 @@ interface FooterProps {
 
 export function Footer({ showDisclaimer = false }: FooterProps) {
   return (
-    <footer className="py-8 sm:py-10 border-t border-gray-200">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[#6e44ff] flex items-center justify-center">
-              <GraduationCap className="w-4 h-4 text-white" />
+    <footer className="bg-gray-900 pt-10 pb-8 relative overflow-hidden mt-10">
+      {/* Decorative Atmospheric Blobs */}
+      <div className="absolute top-0 left-0 w-72 h-72 bg-[#6e44ff]/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
+      <div className="absolute bottom-0 right-0 w-72 h-72 bg-violet-500/10 rounded-full blur-3xl translate-x-1/3 translate-y-1/3" />
+
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14 relative z-10">
+        <div className="flex flex-col md:flex-row justify-between gap-10 w-full border-b border-gray-800 mb-6 pb-10">
+          {/* Brand column */}
+          <div className="max-w-sm lg:max-w-md">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-xl bg-[#6e44ff] flex items-center justify-center shadow-lg shadow-[#6e44ff]/20">
+                <GraduationCap className="w-5 h-5 text-white" />
+              </div>
+              <span className="font-semibold text-white text-lg tracking-tight">
+                PlacePredict
+              </span>
             </div>
-            <span className="font-semibold text-gray-900">PlacePredict</span>
-          </div>
-          <div className="text-center">
-            <p className="text-sm text-gray-400">
-              AI-driven placement predictions for students
+            <p className="text-gray-400 text-sm leading-relaxed">
+              Empowering students with AI-driven placement predictions,
+              personalized resume insights, and data-backed career guidance to
+              secure their dream jobs.
             </p>
             {showDisclaimer && (
-              <p className="text-xs text-gray-400 mt-1">
-                ⚠️ Disclaimer: This is a probabilistic model for guidance only.
-              </p>
+              <div className="p-4 mt-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                <p className="text-amber-500/90 text-xs leading-relaxed">
+                  ⚠️{" "}
+                  <strong className="font-medium text-amber-500">
+                    Disclaimer:
+                  </strong>{" "}
+                  The predictions provided are probabilistic models intended for
+                  guidance only. They do not guarantee any outcomes.
+                </p>
+              </div>
             )}
           </div>
-          <div className="text-xs text-gray-400">
-            © {new Date().getFullYear()} PlacePredict
+
+          {/* Quick Links */}
+          <div>
+            <h3 className="text-white font-medium mb-4 text-sm tracking-wide uppercase">
+              Core Tools
+            </h3>
+            <ul className="space-y-3 text-sm text-gray-400">
+              <li>
+                <Link
+                  href="/prediction"
+                  className="hover:text-white transition-colors"
+                >
+                  Placement Prediction
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/jd-matching"
+                  className="hover:text-white transition-colors"
+                >
+                  Job Description Matching
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/ats-score"
+                  className="hover:text-white transition-colors"
+                >
+                  Resume ATS Scoring
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/project-assessment"
+                  className="hover:text-white transition-colors"
+                >
+                  Project Assessment
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/resume-comparison"
+                  className="hover:text-white transition-colors"
+                >
+                  Resume Comparison
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Support Links */}
+          <div>
+            <h3 className="text-white font-medium mb-4 text-sm tracking-wide uppercase">
+              Support
+            </h3>
+            <ul className="space-y-3 text-sm text-gray-400">
+              <li>
+                <Link href="#" className="hover:text-white transition-colors">
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link href="#" className="hover:text-white transition-colors">
+                  Terms of Service
+                </Link>
+              </li>
+              <li>
+                <Link href="#" className="hover:text-white transition-colors">
+                  Contact
+                </Link>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Bottom bar */}
+        <div className="flex flex-col items-center justify-center">
+          <div className="text-xs text-gray-500">
+            © {new Date().getFullYear()} PlacePredict. All rights reserved.
           </div>
         </div>
       </div>
