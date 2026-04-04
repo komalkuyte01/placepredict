@@ -322,7 +322,8 @@ export function LandingPage() {
               <Link
                 key={tool.href}
                 href={tool.href}
-                className="group relative p-5 sm:p-6 bg-white rounded-xl sm:rounded-2xl border border-gray-200 hover:border-gray-300 hover:shadow-xl hover:shadow-gray-100/50 transition-all duration-300 hover:-translate-y-1"
+                className="group relative p-5 sm:p-6 rounded-xl sm:rounded-2xl border border-gray-200 hover:border-gray-300 hover:shadow-xl hover:shadow-gray-100/50 transition-all duration-300 hover:-translate-y-1"
+                style={{ backgroundColor: `${tool.color}08` }}
               >
                 {tool.recommended && (
                   <div className="absolute top-3 right-3">
@@ -332,10 +333,9 @@ export function LandingPage() {
                   </div>
                 )}
                 <div
-                  className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center mb-3 sm:mb-4 shadow-lg"
+                  className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center mb-3 sm:mb-4"
                   style={{
-                    backgroundColor: `${tool.color}15`,
-                    boxShadow: `0 4px 14px ${tool.color}20`,
+                    backgroundColor: `${tool.color}25`,
                   }}
                 >
                   <tool.icon
@@ -348,7 +348,7 @@ export function LandingPage() {
                     {tool.title}
                   </h3>
                 </div>
-                <p className="text-xs sm:text-sm text-gray-500 leading-relaxed mb-3">
+                <p className="text-xs sm:text-sm leading-relaxed mb-3 text-gray-700">
                   {tool.description}
                 </p>
                 <div className="flex items-center justify-between">
