@@ -11,6 +11,7 @@ import { useCallback, useEffect, useState } from "react";
 import { CandidateForm } from "@/components/prediction/candidate-form";
 import { PredictionResults } from "@/components/prediction/prediction-results";
 import { Footer } from "@/components/shared/footer";
+import { NavHeader } from "@/components/shared/nav-header";
 import { createEmptyProfile } from "@/lib/ml/default-profile";
 import type {
   CandidateProfile,
@@ -120,42 +121,7 @@ export function PlacementDashboard({
   return (
     <div className="min-h-screen bg-[#FAFBFC] flex flex-col">
       {/* Header - only show on input view */}
-      {view === "input" && (
-        <header className="fixed top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-xl border-b border-gray-200">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14">
-            <div className="flex justify-between items-center h-14 sm:h-16">
-              <div className="flex items-center gap-2 sm:gap-3">
-                {onBack && (
-                  <button
-                    type="button"
-                    onClick={onBack}
-                    className="p-2 -ml-2 mr-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                    aria-label="Back to home"
-                  >
-                    <ArrowLeft className="w-5 h-5" />
-                  </button>
-                )}
-                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-[#6e44ff]/10 flex items-center justify-center">
-                  {initialProfile ? (
-                    <ClipboardCheck
-                      className="w-4 h-4 sm:w-5 sm:h-5 text-[#6e44ff]"
-                      fill="currentColor"
-                    />
-                  ) : (
-                    <PenLine
-                      className="w-4 h-4 sm:w-5 sm:h-5 text-[#6e44ff]"
-                      fill="currentColor"
-                    />
-                  )}
-                </div>
-                <span className="text-base sm:text-lg font-semibold text-gray-900">
-                  {initialProfile ? "Verify Your Details" : "Manual Entry Mode"}
-                </span>
-              </div>
-            </div>
-          </div>
-        </header>
-      )}
+      {view === "input" && <NavHeader />}
 
       {/* Main Content */}
       <main

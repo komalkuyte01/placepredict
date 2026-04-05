@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useState } from "react";
 import { FileUploadZone } from "@/components/shared/file-upload-zone";
 import { Footer } from "@/components/shared/footer";
+import { NavHeader } from "@/components/shared/nav-header";
 import { cn } from "@/lib/utils/cn";
 
 interface ComparisonResult {
@@ -63,26 +64,7 @@ export default function ResumeComparisonPage() {
 
   return (
     <div className="min-h-screen bg-[#FAFBFC] flex flex-col">
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/70 backdrop-blur-xl border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14">
-          <div className="flex justify-between items-center h-14 sm:h-16">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <Link
-                href="/"
-                className="p-2 -ml-2 mr-1 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </Link>
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-pink-500/10 flex items-center justify-center">
-                <FileDiff className="w-4 h-4 sm:w-5 sm:h-5 text-pink-600" />
-              </div>
-              <span className="text-base sm:text-lg font-semibold text-gray-900">
-                Resume Comparison
-              </span>
-            </div>
-          </div>
-        </div>
-      </header>
+      <NavHeader />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14 pb-10 flex-1 pt-22 md:pt-24">
         {!result ? (
