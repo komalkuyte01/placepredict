@@ -255,7 +255,7 @@ export function CandidateForm({
                 <button
                   type="button"
                   onClick={addTechnicalSkill}
-                  className="flex-shrink-0 px-3 py-2 bg-[#6e44ff] text-white rounded-lg hover:bg-[#5c35e6]"
+                  className="flex-shrink-0 px-3 py-2 bg-[#1360fa] text-white rounded-lg hover:bg-[#5c35e6]"
                 >
                   <Plus className="w-4 h-4" />
                 </button>
@@ -264,7 +264,7 @@ export function CandidateForm({
                 {profile.technical.technicalSkills.map((skill) => (
                   <span
                     key={skill}
-                    className="inline-flex items-center gap-1 px-2 py-1 bg-[#6e44ff]/10 text-[#6e44ff] rounded-lg text-sm"
+                    className="inline-flex items-center gap-1 px-2 py-1 bg-[#1360fa]/10 text-[#1360fa] rounded-lg text-sm"
                   >
                     {skill}
                     <button
@@ -341,7 +341,7 @@ export function CandidateForm({
                 <button
                   type="button"
                   onClick={addCertification}
-                  className="flex-shrink-0 px-3 py-2 bg-[#6e44ff] text-white rounded-lg hover:bg-[#5c35e6]"
+                  className="flex-shrink-0 px-3 py-2 bg-[#1360fa] text-white rounded-lg hover:bg-[#5c35e6]"
                 >
                   <Plus className="w-4 h-4" />
                 </button>

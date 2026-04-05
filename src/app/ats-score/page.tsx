@@ -62,43 +62,122 @@ export default function ATSScorePage() {
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14 pb-10 flex-1 pt-22 md:pt-24">
         {!result ? (
-          <div className="max-w-2xl mx-auto space-y-6">
-            <div className="text-center mb-8">
-              <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 mb-2">
-                ATS Score Analyzer
+          <div className="space-y-12 sm:space-y-16">
+            {/* Hero Section */}
+            <section className="relative text-center max-w-4xl mx-auto px-4 sm:px-6 mt-4">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-[#1360fa]/10 rounded-full blur-[80px] -z-10" />
+              <div className="mb-4">
+                <Link
+                  href="/"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-gray-600 text-sm border border-gray-200 hover:bg-gray-50 hover:text-gray-900 transition-all shadow-sm"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+                </Link>
+              </div>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1360fa]/10 text-[#1360fa] text-xs font-medium mb-6 border border-[#1360fa]/20">
+                <TrendingUp className="w-3.5 h-3.5" />
+                <span>AI-Powered Resume Analysis</span>
+              </div>
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 leading-[1.15] tracking-tight mb-4">
+                Does Your Resume{" "}
+                <span className="text-[#1360fa]">Beat the Bot?</span>
               </h1>
-              <p className="text-gray-500 text-sm">
-                Upload your resume to get its ATS compatibility score
+              <p className="text-base sm:text-lg text-gray-500 max-w-2xl mx-auto mb-8 leading-relaxed">
+                Upload your resume to instantly simulate how an Applicant
+                Tracking System (ATS) will parse and rank your profile before it
+                ever reaches a human recruiter.
               </p>
-            </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <FileUploadZone
-                label="Your Resume"
-                file={resumeFile}
-                onFileChange={setResumeFile}
-                hint="PDF file"
-              />
-            </div>
-            <div className="flex justify-center">
-              <button
-                type="button"
-                onClick={handleAnalyze}
-                disabled={isLoading || !resumeFile}
-                className={cn(
-                  "px-8 py-3 rounded-lg font-semibold flex items-center gap-2 transition-colors bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed",
-                )}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" /> Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <FileCheck className="w-5 h-5" /> Analyze ATS Score
-                  </>
-                )}
-              </button>
-            </div>
+            </section>
+
+            {/* Tool Area */}
+            <section className="max-w-2xl mx-auto relative z-10 px-4 sm:px-6">
+              <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-8 shadow-xl shadow-gray-100/50">
+                <FileUploadZone
+                  label="Your Resume"
+                  file={resumeFile}
+                  onFileChange={setResumeFile}
+                  hint="PDF file up to 5MB"
+                />
+
+                <div className="mt-8 flex flex-col items-center">
+                  <button
+                    type="button"
+                    onClick={handleAnalyze}
+                    disabled={isLoading || !resumeFile}
+                    className={cn(
+                      "w-full sm:w-auto px-8 py-3.5 rounded-full font-semibold flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl",
+                      isLoading || !resumeFile
+                        ? "bg-gray-100 text-gray-400 cursor-not-allowed shadow-none"
+                        : "bg-[#1360fa] text-white hover:bg-[#5c35e6] shadow-[#1360fa]/25 hover:shadow-[#1360fa]/30",
+                    )}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" /> Analyzing
+                        Document...
+                      </>
+                    ) : (
+                      <>
+                        <FileCheck className="w-5 h-5" /> Analyze ATS Score
+                      </>
+                    )}
+                  </button>
+                  <p className="text-xs text-gray-400 mt-4 text-center">
+                    Files are processed locally and never stored permanently.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* How it Works Section */}
+            <section className="max-w-5xl mx-auto px-4 sm:px-6 pt-4 pb-12">
+              <div className="text-center mb-10">
+                <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+                  How It Works
+                </h2>
+                <p className="text-gray-500">
+                  Uncover the logic behind our real-time ATS parsing.
+                </p>
+              </div>
+              <div className="grid md:grid-cols-3 gap-6">
+                <div className="bg-[#FAFBFC] rounded-2xl p-6 border border-gray-100 text-center hover:border-[#1360fa]/20 transition-colors">
+                  <div className="w-12 h-12 bg-white rounded-xl border border-gray-200 shadow-sm flex items-center justify-center mx-auto mb-4">
+                    <span className="text-[#1360fa] font-bold">1</span>
+                  </div>
+                  <h3 className="font-semibold text-gray-900 mb-2">
+                    Text Extraction
+                  </h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">
+                    We use advanced NLP to strip formatting and extract pure
+                    text, exactly like top enterprise ATS software.
+                  </p>
+                </div>
+                <div className="bg-[#FAFBFC] rounded-2xl p-6 border border-gray-100 text-center hover:border-[#1360fa]/20 transition-colors">
+                  <div className="w-12 h-12 bg-white rounded-xl border border-gray-200 shadow-sm flex items-center justify-center mx-auto mb-4">
+                    <span className="text-[#1360fa] font-bold">2</span>
+                  </div>
+                  <h3 className="font-semibold text-gray-900 mb-2">
+                    Keyword Evaluation
+                  </h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">
+                    Our AI models assess your document for critical missing
+                    keywords, matching structures against typical roles.
+                  </p>
+                </div>
+                <div className="bg-[#FAFBFC] rounded-2xl p-6 border border-gray-100 text-center hover:border-[#1360fa]/20 transition-colors">
+                  <div className="w-12 h-12 bg-white rounded-xl border border-gray-200 shadow-sm flex items-center justify-center mx-auto mb-4">
+                    <span className="text-[#1360fa] font-bold">3</span>
+                  </div>
+                  <h3 className="font-semibold text-gray-900 mb-2">
+                    Actionable Suggestions
+                  </h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">
+                    Get a tailored checklist mapping exactly what areas are
+                    lowering your score and how to optimize them.
+                  </p>
+                </div>
+              </div>
+            </section>
           </div>
         ) : (
           <div className="max-w-4xl mx-auto space-y-6">
@@ -249,16 +328,16 @@ export default function ATSScorePage() {
             {/* Suggestions */}
             {result.suggestions.length > 0 && (
               <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-[#6e44ff] mb-3">
+                <h3 className="text-lg font-semibold text-[#1360fa] mb-3">
                   💡 Suggestions to Improve
                 </h3>
                 <ul className="space-y-2">
                   {result.suggestions.map((s) => (
                     <li
                       key={s}
-                      className="flex items-start gap-2 p-3 bg-[#6e44ff]/5 rounded-lg border border-[#6e44ff]/10 text-sm text-gray-700"
+                      className="flex items-start gap-2 p-3 bg-[#1360fa]/5 rounded-lg border border-[#1360fa]/10 text-sm text-gray-700"
                     >
-                      <span className="text-[#6e44ff] mt-0.5">→</span> {s}
+                      <span className="text-[#1360fa] mt-0.5">→</span> {s}
                     </li>
                   ))}
                 </ul>

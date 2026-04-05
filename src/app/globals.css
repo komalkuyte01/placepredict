@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
 :root {
-  /* Modern Purple Theme - #6e44ff */
-  --primary-color: #6e44ff;
-  --primary-light: #8b6aff;
+  /* Modern Purple Theme - #1360fa */
+  --primary-color: #1360fa;
+  --primary-light: #3b7efa;
   --primary-lighter: #ebe7ff;
   --primary-bg: #f8f7ff;
 
@@ -20,10 +20,10 @@
   --color-success: #10b981;
   --color-warning: #f59e0b;
   --color-danger: #ef4444;
-  --color-info: #6e44ff;
+  --color-info: #1360fa;
 
   /* Chart Colors */
-  --chart-blue: #6e44ff;
+  --chart-blue: #1360fa;
   --chart-green: #10b981;
   --chart-yellow: #f59e0b;
   --chart-red: #ef4444;

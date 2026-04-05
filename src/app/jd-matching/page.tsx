@@ -69,64 +69,138 @@ export default function JDMatchingPage() {
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14 pb-10 flex-1 pt-22 md:pt-24">
         {!result ? (
-          <div className="max-w-3xl mx-auto space-y-6">
-            <div className="text-center mb-8">
-              <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 mb-2">
-                JD Matching Analysis
+          <div className="space-y-12 sm:space-y-16">
+            {/* Hero Section */}
+            <section className="relative text-center max-w-4xl mx-auto px-4 sm:px-6 mt-4">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-[#1360fa]/10 rounded-full blur-[80px] -z-10" />
+              <div className="mb-4">
+                <Link
+                  href="/"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-gray-600 text-sm border border-gray-200 hover:bg-gray-50 hover:text-gray-900 transition-all shadow-sm"
+                >
+                  <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+                </Link>
+              </div>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1360fa]/10 text-[#1360fa] text-xs font-medium mb-6 border border-[#1360fa]/20">
+                <FileSearch className="w-3.5 h-3.5" />
+                <span>AI-Powered Job Fit</span>
+              </div>
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 leading-[1.15] tracking-tight mb-4">
+                Job Description{" "}
+                <span className="text-[#1360fa]">vs. Resume</span>
               </h1>
-              <p className="text-gray-500 text-sm">
-                Upload a job description and your resume to find how well you
-                match
+              <p className="text-base sm:text-lg text-gray-500 max-w-2xl mx-auto mb-8 leading-relaxed">
+                See exactly how well you match a role. Paste the JD and upload
+                your resume to get instant NLP-driven feedback and skill gap
+                analysis.
               </p>
-            </div>
+            </section>
 
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <FileUploadZone
-                  label="Job Description"
-                  file={jdFile}
-                  onFileChange={setJdFile}
-                  hint="PDF or paste text"
-                  allowText
-                  textValue={jdText}
-                  onTextChange={setJdText}
-                  textPlaceholder="Paste the job description here..."
-                />
-              </div>
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <FileUploadZone
-                  label="Your Resume"
-                  file={resumeFile}
-                  onFileChange={setResumeFile}
-                  hint="PDF file"
-                />
-              </div>
-            </div>
+            {/* Tool Area */}
+            <section className="max-w-4xl mx-auto relative z-10 px-4 sm:px-6">
+              <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-8 shadow-xl shadow-gray-100/50">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <FileUploadZone
+                    label="Job Description"
+                    file={jdFile}
+                    onFileChange={setJdFile}
+                    hint="PDF or paste text"
+                    allowText
+                    textValue={jdText}
+                    onTextChange={setJdText}
+                    textPlaceholder="Paste the job description here..."
+                  />
+                  <FileUploadZone
+                    label="Your Resume"
+                    file={resumeFile}
+                    onFileChange={setResumeFile}
+                    hint="PDF file up to 5MB"
+                  />
+                </div>
 
-            <div className="flex justify-center">
-              <button
-                type="button"
-                onClick={handleAnalyze}
-                disabled={
-                  isLoading || (!jdFile && !jdText.trim()) || !resumeFile
-                }
-                className={cn(
-                  "px-8 py-3 rounded-lg font-semibold flex items-center gap-2 transition-colors",
-                  "bg-cyan-600 text-white hover:bg-cyan-700",
-                  "disabled:opacity-50 disabled:cursor-not-allowed",
-                )}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" /> Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <FileSearch className="w-5 h-5" /> Analyze Match
-                  </>
-                )}
-              </button>
-            </div>
+                <div className="mt-8 flex flex-col items-center">
+                  <button
+                    type="button"
+                    onClick={handleAnalyze}
+                    disabled={
+                      isLoading || (!jdFile && !jdText.trim()) || !resumeFile
+                    }
+                    className={cn(
+                      "w-full sm:w-auto px-8 py-3.5 rounded-full font-semibold flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl",
+                      isLoading || (!jdFile && !jdText.trim()) || !resumeFile
+                        ? "bg-gray-100 text-gray-400 cursor-not-allowed shadow-none"
+                        : "bg-[#1360fa] text-white hover:bg-[#5c35e6] shadow-[#1360fa]/25 hover:shadow-[#1360fa]/30",
+                    )}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" /> Analyzing
+                        Match...
+                      </>
+                    ) : (
+                      <>
+                        <FileSearch className="w-5 h-5" /> Calculate Job Fit
+                      </>
+                    )}
+                  </button>
+                  <p className="text-xs text-gray-400 mt-4 text-center">
+                    Analysis happens locally for maximum privacy.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* How it Works Section */}
+            <section className="max-w-5xl mx-auto px-4 sm:px-6 pt-4 pb-12">
+              <div className="text-center mb-10">
+                <h2 className="text-2xl font-semibold text-gray-900 mb-2">
+                  How It Works
+                </h2>
+                <p className="text-gray-500">
+                  Discover how we align your profile with standard recruiter
+                  expectations.
+                </p>
+              </div>
+              <div className="grid md:grid-cols-3 gap-6">
+                <div className="bg-[#FAFBFC] rounded-2xl p-6 border border-gray-100 text-center hover:border-[#1360fa]/20 transition-colors">
+                  <div className="w-12 h-12 bg-white rounded-xl border border-gray-200 shadow-sm flex items-center justify-center mx-auto mb-4">
+                    <span className="text-[#1360fa] font-bold">1</span>
+                  </div>
+                  <h3 className="font-semibold text-gray-900 mb-2">
+                    Entity Recognition
+                  </h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">
+                    We break down the job description to isolate essential
+                    technical skills, soft skills, and required experience
+                    levels.
+                  </p>
+                </div>
+                <div className="bg-[#FAFBFC] rounded-2xl p-6 border border-gray-100 text-center hover:border-[#1360fa]/20 transition-colors">
+                  <div className="w-12 h-12 bg-white rounded-xl border border-gray-200 shadow-sm flex items-center justify-center mx-auto mb-4">
+                    <span className="text-[#1360fa] font-bold">2</span>
+                  </div>
+                  <h3 className="font-semibold text-gray-900 mb-2">
+                    Semantic Matching
+                  </h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">
+                    We use semantic vector matching to identify when your resume
+                    contains equivalent skills even if phrased differently.
+                  </p>
+                </div>
+                <div className="bg-[#FAFBFC] rounded-2xl p-6 border border-gray-100 text-center hover:border-[#1360fa]/20 transition-colors">
+                  <div className="w-12 h-12 bg-white rounded-xl border border-gray-200 shadow-sm flex items-center justify-center mx-auto mb-4">
+                    <span className="text-[#1360fa] font-bold">3</span>
+                  </div>
+                  <h3 className="font-semibold text-gray-900 mb-2">
+                    Gap Analysis
+                  </h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">
+                    You get a clear breakdown of missing qualifications,
+                    allowing you to tailor your resume directly for this role.
+                  </p>
+                </div>
+              </div>
+            </section>
           </div>
         ) : (
           <div className="max-w-4xl mx-auto space-y-6">
@@ -287,16 +361,16 @@ export default function JDMatchingPage() {
             {/* Suggestions */}
             {result.suggestions.length > 0 && (
               <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-[#6e44ff] mb-3">
+                <h3 className="text-lg font-semibold text-[#1360fa] mb-3">
                   💡 Suggestions to Improve Match
                 </h3>
                 <ul className="space-y-2">
                   {result.suggestions.map((s) => (
                     <li
                       key={s}
-                      className="flex items-start gap-2 p-3 bg-[#6e44ff]/5 rounded-lg border border-[#6e44ff]/10 text-sm text-gray-700"
+                      className="flex items-start gap-2 p-3 bg-[#1360fa]/5 rounded-lg border border-[#1360fa]/10 text-sm text-gray-700"
                     >
-                      <span className="text-[#6e44ff] mt-0.5">→</span> {s}
+                      <span className="text-[#1360fa] mt-0.5">→</span> {s}
                     </li>
                   ))}
                 </ul>

@@ -605,7 +605,7 @@ export function PredictionResults({
       {timeline.items.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h3 className="text-lg font-semibold mb-2 flex items-center gap-2 text-[hsl(240,10%,3.9%)]">
-            <Calendar className="w-5 h-5 text-[#6e44ff]" />
+            <Calendar className="w-5 h-5 text-[#1360fa]" />
             Placement Readiness Timeline
           </h3>
           <p className="text-sm text-gray-500 mb-5">
@@ -614,7 +614,7 @@ export function PredictionResults({
               {timeline.targetProbability}%
             </span>{" "}
             in{" "}
-            <span className="font-semibold text-[#6e44ff]">
+            <span className="font-semibold text-[#1360fa]">
               ~{timeline.totalMonths} month
               {timeline.totalMonths !== 1 ? "s" : ""}
             </span>
@@ -641,7 +641,7 @@ export function PredictionResults({
             </div>
             <div className="relative h-3 bg-gray-100 rounded-full overflow-hidden">
               <div
-                className="absolute h-full rounded-full transition-all duration-700 bg-gradient-to-r from-[#6e44ff] to-[#8b6aff]"
+                className="absolute h-full rounded-full transition-all duration-700 bg-gradient-to-r from-[#1360fa] to-[#3b7efa]"
                 style={{ width: `${prediction.probability}%` }}
               />
               <div
@@ -656,9 +656,9 @@ export function PredictionResults({
             {timeline.items.map((item, index) => (
               <div
                 key={item.area}
-                className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100 group hover:border-[#6e44ff]/20 hover:bg-[#6e44ff]/5 transition-all"
+                className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100 group hover:border-[#1360fa]/20 hover:bg-[#1360fa]/5 transition-all"
               >
-                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#6e44ff]/10 text-[#6e44ff] flex-shrink-0">
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1360fa]/10 text-[#1360fa] flex-shrink-0">
                   <span className="text-xs font-bold">{index + 1}</span>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -676,9 +676,9 @@ export function PredictionResults({
                     <span className="text-red-500">{item.current}</span>
                   </p>
                 </div>
-                <div className="flex items-center gap-1 px-2.5 py-1 bg-[#6e44ff]/10 rounded-full flex-shrink-0">
-                  <Clock className="w-3 h-3 text-[#6e44ff]" />
-                  <span className="text-xs font-medium text-[#6e44ff]">
+                <div className="flex items-center gap-1 px-2.5 py-1 bg-[#1360fa]/10 rounded-full flex-shrink-0">
+                  <Clock className="w-3 h-3 text-[#1360fa]" />
+                  <span className="text-xs font-medium text-[#1360fa]">
                     {item.timeEstimate}
                   </span>
                 </div>

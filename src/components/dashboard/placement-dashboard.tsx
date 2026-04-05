@@ -136,10 +136,10 @@ export function PlacementDashboard({
             {showSuccessBanner &&
               initialProfile &&
               initialParseResult?.success && (
-                <div className="bg-[#6e44ff]/5 border border-[#6e44ff]/20 rounded-2xl p-5">
+                <div className="bg-[#1360fa]/5 border border-[#1360fa]/20 rounded-2xl p-5">
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#6e44ff]/10 flex items-center justify-center flex-shrink-0">
-                      <CheckCircle className="w-5 h-5 text-[#6e44ff]" />
+                    <div className="w-10 h-10 rounded-xl bg-[#1360fa]/10 flex items-center justify-center flex-shrink-0">
+                      <CheckCircle className="w-5 h-5 text-[#1360fa]" />
                     </div>
                     <div>
                       <p className="font-semibold text-gray-900">
@@ -151,7 +151,7 @@ export function PlacementDashboard({
                       </p>
                       {initialParseResult.missingFields &&
                         initialParseResult.missingFields.length > 0 && (
-                          <p className="text-sm text-[#6e44ff] mt-2">
+                          <p className="text-sm text-[#1360fa] mt-2">
                             <span className="font-medium">
                               Please fill manually:
                             </span>{" "}
@@ -165,9 +165,9 @@ export function PlacementDashboard({
 
             {/* Role Selection */}
             <div className="flex justify-center">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#6e44ff]/10 rounded-full border border-[#6e44ff]/20">
-                <Briefcase className="w-4 h-4 text-[#6e44ff]" />
-                <span className="text-sm font-medium text-[#6e44ff]">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#1360fa]/10 rounded-full border border-[#1360fa]/20">
+                <Briefcase className="w-4 h-4 text-[#1360fa]" />
+                <span className="text-sm font-medium text-[#1360fa]">
                   Role: Software Developer
                 </span>
               </div>

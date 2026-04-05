@@ -11,7 +11,7 @@ export function Footer({ showDisclaimer = false }: FooterProps) {
   return (
     <footer className="bg-gray-900 pt-10 pb-8 relative overflow-hidden mt-10">
       {/* Decorative Atmospheric Blobs */}
-      <div className="absolute top-0 left-0 w-72 h-72 bg-[#6e44ff]/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
+      <div className="absolute top-0 left-0 w-72 h-72 bg-[#1360fa]/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
       <div className="absolute bottom-0 right-0 w-72 h-72 bg-violet-500/10 rounded-full blur-3xl translate-x-1/3 translate-y-1/3" />
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14 relative z-10">
@@ -19,7 +19,7 @@ export function Footer({ showDisclaimer = false }: FooterProps) {
           {/* Brand column */}
           <div className="max-w-sm lg:max-w-md">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-xl bg-[#6e44ff] flex items-center justify-center shadow-lg shadow-[#6e44ff]/20">
+              <div className="w-8 h-8 rounded-xl bg-[#1360fa] flex items-center justify-center shadow-lg shadow-[#1360fa]/20">
                 <GraduationCap className="w-5 h-5 text-white" />
               </div>
               <span className="font-semibold text-white text-lg tracking-tight">

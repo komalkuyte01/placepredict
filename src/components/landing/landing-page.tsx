@@ -73,8 +73,8 @@ export function LandingPage() {
       icon: FileText,
       title: "Resume Parsing",
       description: "AI extracts details from resume automatically",
-      iconBg: "bg-[#6e44ff]/10",
-      iconColor: "text-[#6e44ff]",
+      iconBg: "bg-[#1360fa]/10",
+      iconColor: "text-[#1360fa]",
     },
     {
       icon: Brain,
@@ -113,7 +113,7 @@ export function LandingPage() {
       title: "Placement Prediction",
       description:
         "Get ML-powered placement probability with detailed analysis and personalized suggestions",
-      color: "#6e44ff",
+      color: "#1360fa",
       badge: "ML Powered",
       recommended: true,
       actionText: "Start Prediction",
@@ -179,8 +179,8 @@ export function LandingPage() {
       {isUploading && (
         <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center">
           <div className="bg-white rounded-2xl p-8 shadow-2xl flex flex-col items-center gap-4 max-w-sm mx-4">
-            <div className="w-16 h-16 rounded-full bg-[#6e44ff]/10 flex items-center justify-center">
-              <Loader2 className="w-8 h-8 text-[#6e44ff] animate-spin" />
+            <div className="w-16 h-16 rounded-full bg-[#1360fa]/10 flex items-center justify-center">
+              <Loader2 className="w-8 h-8 text-[#1360fa] animate-spin" />
             </div>
             <div className="text-center">
               <h3 className="text-lg font-semibold text-gray-900 mb-1">
@@ -201,7 +201,7 @@ export function LandingPage() {
       <section className="pt-22 sm:pt-28 pb-10 sm:pb-14">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14">
           <div className="max-w-3xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#6e44ff]/10 text-[#6e44ff] text-xs font-medium mb-6 sm:mb-8 border border-[#6e44ff]/20">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1360fa]/10 text-[#1360fa] text-xs font-medium mb-6 sm:mb-8 border border-[#1360fa]/20">
               <Zap className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">
                 Powered by Gemini AI & Machine Learning
@@ -209,7 +209,7 @@ export function LandingPage() {
               <span className="sm:hidden">Gemini AI & ML Powered</span>
             </div>
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-[1.15] sm:leading-[1.1] tracking-tight mb-4 sm:mb-6">
-              Know Your <span className="text-[#6e44ff]">Placement</span>
+              Know Your <span className="text-[#1360fa]">Placement</span>
               <br />
               Chances Today
             </h1>
@@ -220,7 +220,7 @@ export function LandingPage() {
             <div className="flex flex-row gap-2 sm:gap-3 justify-center">
               <Link
                 href="/prediction"
-                className="group inline-flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-3 sm:py-3.5 bg-[#6e44ff] text-white rounded-full text-sm sm:text-base font-medium shadow-lg shadow-[#6e44ff]/25 hover:bg-[#5c35e6] hover:shadow-xl hover:shadow-[#6e44ff]/30 transition-all duration-200"
+                className="group inline-flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-3 sm:py-3.5 bg-[#1360fa] text-white rounded-full text-sm sm:text-base font-medium shadow-lg shadow-[#1360fa]/25 hover:bg-[#5c35e6] hover:shadow-xl hover:shadow-[#1360fa]/30 transition-all duration-200"
               >
                 <TrendingUp className="w-4 h-4" />
                 Get Prediction
@@ -240,21 +240,23 @@ export function LandingPage() {
       {/* Problem Statement */}
       <section>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14">
-          <div className="bg-gray-900 rounded-2xl sm:rounded-3xl p-6 sm:p-10 md:p-14 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-[#6e44ff]/10 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 left-0 w-48 h-48 bg-violet-500/10 rounded-full blur-3xl" />
+          <div className="bg-[#1360fa]/5 rounded-2xl sm:rounded-3xl p-6 sm:p-10 md:p-14 relative overflow-hidden border border-[#1360fa]/20 shadow-xl shadow-[#1360fa]/5">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[#1360fa]/10 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#1360fa]/10 rounded-full blur-3xl" />
             <div className="relative max-w-2xl mx-auto text-center">
-              <h2 className="text-2xl sm:text-3xl font-semibold text-white mb-5">
+              <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 mb-5">
                 The Problem We Solve
               </h2>
-              <p className="text-gray-400 leading-relaxed mb-6">
+              <p className="text-gray-600 leading-relaxed mb-6">
                 Students often struggle to understand their job placement
                 prospects. Traditional assessments lack personalization and fail
                 to provide actionable insights.
               </p>
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 text-white/90 text-sm backdrop-blur-sm">
-                <TrendingUp className="w-4 h-4 text-[#6e44ff]" />
-                <span>Our ML models analyze 17+ factors</span>
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-[#1360fa] text-sm border border-[#1360fa]/20 shadow-sm">
+                <TrendingUp className="w-4 h-4 text-[#1360fa]" />
+                <span className="font-medium">
+                  Our ML models analyze 17+ factors
+                </span>
               </div>
             </div>
           </div>
@@ -346,7 +348,7 @@ export function LandingPage() {
                     >
                       {tool.recommended && (
                         <div className="absolute top-4 right-4">
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#6e44ff]/10 text-[#6e44ff] text-xs font-semibold">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#1360fa]/10 text-[#1360fa] text-xs font-semibold">
                             <Star className="w-3.5 h-3.5" /> Recommended
                           </span>
                         </div>
@@ -391,13 +393,13 @@ export function LandingPage() {
           <div className="grid md:grid-cols-2 gap-6 sm:gap-6 lg:gap-12 items-stretch">
             <div className="bg-white rounded-xl sm:rounded-2xl p-5 sm:p-8 border border-gray-200 shadow-xl shadow-gray-100/50 h-full">
               <div className="flex items-center gap-2 mb-3">
-                <Zap className="w-5 h-5 text-[#6e44ff]" />
+                <Zap className="w-5 h-5 text-[#1360fa]" />
                 <h3 className="font-bold text-gray-900">How It Works</h3>
               </div>
               <div className="space-y-3">
                 {objectives.map((objective) => (
                   <div key={objective} className="flex items-start gap-3">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#6e44ff] flex-shrink-0 mt-2" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#1360fa] flex-shrink-0 mt-2" />
                     <p className="text-gray-600 text-sm">{objective}</p>
                   </div>
                 ))}
@@ -405,7 +407,7 @@ export function LandingPage() {
             </div>
             <div className="bg-white rounded-xl sm:rounded-2xl p-5 sm:p-8 border border-gray-200 shadow-xl shadow-gray-100/50 h-full">
               <div className="flex items-center gap-2 mb-4 sm:mb-6">
-                <Shield className="w-5 h-5 text-[#6e44ff]" />
+                <Shield className="w-5 h-5 text-[#1360fa]" />
                 <h3 className="font-semibold text-gray-900">What We Analyze</h3>
               </div>
               <div className="grid grid-cols-2 gap-2 sm:gap-3">
@@ -423,7 +425,7 @@ export function LandingPage() {
                     key={item}
                     className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 py-1.5 sm:py-2 px-2 sm:px-3 bg-gray-50 rounded-lg"
                   >
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#6e44ff] flex-shrink-0" />
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#1360fa] flex-shrink-0" />
                     <span className="truncate">{item}</span>
                   </div>
                 ))}

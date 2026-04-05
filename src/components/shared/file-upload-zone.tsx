@@ -78,9 +78,9 @@ export function FileUploadZone({
     return (
       <div className="space-y-2">
         <span className="block text-sm font-medium text-gray-900">{label}</span>
-        <div className="flex items-center gap-3 p-4 bg-[#6e44ff]/5 border border-[#6e44ff]/20 rounded-xl">
-          <div className="w-10 h-10 rounded-lg bg-[#6e44ff]/10 flex items-center justify-center flex-shrink-0">
-            <FileText className="w-5 h-5 text-[#6e44ff]" />
+        <div className="flex items-center gap-3 p-4 bg-[#1360fa]/5 border border-[#1360fa]/20 rounded-xl">
+          <div className="w-10 h-10 rounded-lg bg-[#1360fa]/10 flex items-center justify-center flex-shrink-0">
+            <FileText className="w-5 h-5 text-[#1360fa]" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">
@@ -143,7 +143,7 @@ export function FileUploadZone({
           onChange={(e) => onTextChange?.(e.target.value)}
           placeholder={textPlaceholder}
           rows={8}
-          className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-[#6e44ff]/40 focus:ring-2 focus:ring-[#6e44ff]/10 transition-colors resize-none"
+          className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:border-[#1360fa]/40 focus:ring-2 focus:ring-[#1360fa]/10 transition-colors resize-none"
         />
       ) : (
         <>
@@ -164,25 +164,25 @@ export function FileUploadZone({
             className={cn(
               "w-full p-8 border-2 border-dashed rounded-xl transition-all duration-200 text-center cursor-pointer",
               isDragOver
-                ? "border-[#6e44ff] bg-[#6e44ff]/5"
+                ? "border-[#1360fa] bg-[#1360fa]/5"
                 : "border-gray-200 bg-gray-50/50 hover:border-gray-300 hover:bg-gray-50",
               isLoading && "opacity-50 cursor-not-allowed",
             )}
           >
             {isLoading ? (
               <div className="flex flex-col items-center gap-2">
-                <Loader2 className="w-8 h-8 text-[#6e44ff] animate-spin" />
+                <Loader2 className="w-8 h-8 text-[#1360fa] animate-spin" />
                 <p className="text-sm text-gray-500">Processing...</p>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-2">
-                <div className="w-12 h-12 rounded-xl bg-[#6e44ff]/10 flex items-center justify-center">
-                  <Upload className="w-6 h-6 text-[#6e44ff]" />
+                <div className="w-12 h-12 rounded-xl bg-[#1360fa]/10 flex items-center justify-center">
+                  <Upload className="w-6 h-6 text-[#1360fa]" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-700">
                     Drop file here or{" "}
-                    <span className="text-[#6e44ff]">browse</span>
+                    <span className="text-[#1360fa]">browse</span>
                   </p>
                   <p className="text-xs text-gray-400 mt-1">{hint}</p>
                 </div>
