@@ -187,7 +187,7 @@ export default function ResumeComparisonPage() {
                 <div className="space-y-4">
                   {result.categories.map((c) => (
                     <div key={c.category}>
-                      <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2 mb-1.5">
                         <span className="text-sm font-medium text-gray-700">
                           {c.category}
                         </span>
