@@ -1,9 +1,8 @@
 "use client";
 
-import { ArrowLeft, FileDiff, Loader2, Trophy } from "lucide-react";
+import { ArrowLeft, Trophy } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useState } from "react";
-import { FileUploadZone } from "@/components/shared/file-upload-zone";
+import { useEffect, useState } from "react";
 import { Footer } from "@/components/shared/footer";
 import { NavHeader } from "@/components/shared/nav-header";
 import { cn } from "@/lib/utils/cn";
@@ -25,42 +24,68 @@ interface ComparisonResult {
   recommendation: string;
 }
 
-export default function ResumeComparisonPage() {
-  const [resumeA, setResumeA] = useState<File | null>(null);
-  const [resumeB, setResumeB] = useState<File | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState<ComparisonResult | null>(null);
+const getTheme = (isWinner: boolean, isTie: boolean) => {
+  if (isTie) {
+    return {
+      text: "text-blue-500",
+      bgBar: "bg-blue-400",
+      bgPill: "bg-blue-50",
+      textPill: "text-blue-600",
+      bgCard: "bg-blue-50",
+      borderCard: "border-blue-100",
+      bulletText: "text-blue-400",
+      headerText: "text-blue-500",
+      borderMain: "border-blue-200",
+    };
+  }
+  if (isWinner) {
+    return {
+      text: "text-emerald-600",
+      bgBar: "bg-emerald-500",
+      bgPill: "bg-emerald-100",
+      textPill: "text-emerald-700",
+      bgCard: "bg-emerald-50",
+      borderCard: "border-emerald-100",
+      bulletText: "text-emerald-500",
+      headerText: "text-emerald-600",
+      borderMain: "border-emerald-200",
+    };
+  }
+  return {
+    text: "text-red-400",
+    bgBar: "bg-red-400",
+    bgPill: "bg-red-50",
+    textPill: "text-red-600",
+    bgCard: "bg-red-50",
+    borderCard: "border-red-100",
+    bulletText: "text-red-400",
+    headerText: "text-red-500",
+    borderMain: "border-red-200",
+  };
+};
 
-  const handleCompare = useCallback(async () => {
-    if (!resumeA || !resumeB) return;
-    setIsLoading(true);
-    setResult(null);
-    try {
-      const formData = new FormData();
-      formData.append("resumeA", resumeA);
-      formData.append("resumeB", resumeB);
-      const response = await fetch("/api/resume-comparison", {
-        method: "POST",
-        body: formData,
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setResult(data.result);
-      } else {
-        alert("Comparison failed. Please try again.");
+export default function ResumeComparisonPage() {
+  const [result, setResult] = useState<ComparisonResult | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    const stored = sessionStorage.getItem("compareSettings");
+    if (stored) {
+      try {
+        setResult(JSON.parse(stored));
+      } catch (e) {
+        console.error("Failed to parse Comparison result", e);
       }
-    } catch {
-      alert("Failed to compare. Please try again.");
-    } finally {
-      setIsLoading(false);
     }
-  }, [resumeA, resumeB]);
+    setIsLoaded(true);
+  }, []);
 
   const handleReset = () => {
-    setResumeA(null);
-    setResumeB(null);
-    setResult(null);
+    sessionStorage.removeItem("compareSettings");
+    window.location.href = "/";
   };
+
+  if (!isLoaded) return null;
 
   return (
     <div className="min-h-screen bg-[#FAFBFC] flex flex-col">
@@ -68,133 +93,30 @@ export default function ResumeComparisonPage() {
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14 pb-10 flex-1 pt-22 md:pt-24">
         {!result ? (
-          <div className="space-y-12 sm:space-y-16">
-            {/* Hero Section */}
-            <section className="relative text-center max-w-4xl mx-auto px-4 sm:px-6 mt-4">
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-[#1360fa]/10 rounded-full blur-[80px] -z-10" />
-              <div className="mb-4">
-                <Link
-                  href="/"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-gray-600 text-sm border border-gray-200 hover:bg-gray-50 hover:text-gray-900 transition-all shadow-sm"
-                >
-                  <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-                </Link>
-              </div>
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#1360fa]/10 text-[#1360fa] text-xs font-medium mb-6 border border-[#1360fa]/20">
-                <FileDiff className="w-3.5 h-3.5" />
-                <span>AI-Powered A/B Testing</span>
-              </div>
-              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 leading-[1.15] tracking-tight mb-4">
-                Resume{" "}
-                <span className="text-[#1360fa]">Version Comparison</span>
-              </h1>
-              <p className="text-base sm:text-lg text-gray-500 max-w-2xl mx-auto mb-8 leading-relaxed">
-                Not sure which resume is better? Upload two versions to find out
-                which one effectively communicates your impact and has higher
-                ATS compatibility.
-              </p>
-            </section>
-
-            {/* Tool Area */}
-            <section className="max-w-4xl mx-auto relative z-10 px-4 sm:px-6">
-              <div className="bg-white rounded-2xl border border-gray-200 p-6 sm:p-8 shadow-xl shadow-gray-100/50">
-                <div className="grid md:grid-cols-2 gap-6">
-                  <FileUploadZone
-                    label="Resume Version A"
-                    file={resumeA}
-                    onFileChange={setResumeA}
-                    hint="PDF file up to 5MB"
-                  />
-                  <FileUploadZone
-                    label="Resume Version B"
-                    file={resumeB}
-                    onFileChange={setResumeB}
-                    hint="PDF file up to 5MB"
-                  />
-                </div>
-
-                <div className="mt-8 flex flex-col items-center">
-                  <button
-                    type="button"
-                    onClick={handleCompare}
-                    disabled={isLoading || !resumeA || !resumeB}
-                    className={cn(
-                      "w-full sm:w-auto px-8 py-3.5 rounded-full font-semibold flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl",
-                      isLoading || !resumeA || !resumeB
-                        ? "bg-gray-100 text-gray-400 cursor-not-allowed shadow-none"
-                        : "bg-[#1360fa] text-white hover:bg-[#5c35e6] shadow-[#1360fa]/25 hover:shadow-[#1360fa]/30",
-                    )}
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" /> Comparing
-                        Versions...
-                      </>
-                    ) : (
-                      <>
-                        <FileDiff className="w-5 h-5" /> Compare Versions
-                      </>
-                    )}
-                  </button>
-                  <p className="text-xs text-gray-400 mt-4 text-center">
-                    Analysis happens locally for maximum privacy.
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            {/* How it Works Section */}
-            <section className="max-w-5xl mx-auto px-4 sm:px-6 pt-4 pb-12">
-              <div className="text-center mb-10">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-2">
-                  How It Works
-                </h2>
-                <p className="text-gray-500">
-                  Discover how we evaluate versions against industry benchmarks.
-                </p>
-              </div>
-              <div className="grid md:grid-cols-3 gap-6">
-                <div className="bg-[#FAFBFC] rounded-2xl p-6 border border-gray-100 text-center hover:border-[#1360fa]/20 transition-colors">
-                  <div className="w-12 h-12 bg-white rounded-xl border border-gray-200 shadow-sm flex items-center justify-center mx-auto mb-4">
-                    <span className="text-[#1360fa] font-bold">1</span>
-                  </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">
-                    Metrics Analysis
-                  </h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">
-                    We quantify both resumes on factors like action verb usage,
-                    quantitative accomplishments, and readability.
-                  </p>
-                </div>
-                <div className="bg-[#FAFBFC] rounded-2xl p-6 border border-gray-100 text-center hover:border-[#1360fa]/20 transition-colors">
-                  <div className="w-12 h-12 bg-white rounded-xl border border-gray-200 shadow-sm flex items-center justify-center mx-auto mb-4">
-                    <span className="text-[#1360fa] font-bold">2</span>
-                  </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">
-                    Structural Check
-                  </h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">
-                    Our AI models assess which version has better ATS-friendly
-                    formatting, evaluating section distribution.
-                  </p>
-                </div>
-                <div className="bg-[#FAFBFC] rounded-2xl p-6 border border-gray-100 text-center hover:border-[#1360fa]/20 transition-colors">
-                  <div className="w-12 h-12 bg-white rounded-xl border border-gray-200 shadow-sm flex items-center justify-center mx-auto mb-4">
-                    <span className="text-[#1360fa] font-bold">3</span>
-                  </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">
-                    Winning Verdict
-                  </h3>
-                  <p className="text-sm text-gray-500 leading-relaxed">
-                    A comprehensive side-by-side comparison yields a final
-                    verdict on which resume will perform better in applications.
-                  </p>
-                </div>
-              </div>
-            </section>
+          <div className="text-center py-20">
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">
+              No Data Found
+            </h1>
+            <p className="text-gray-500 mb-8">
+              Please start from the dashboard directly to compare resumes.
+            </p>
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#1360fa] text-white font-medium hover:bg-[#5c35e6] transition-colors shadow-lg"
+            >
+              <ArrowLeft className="w-4 h-4" /> Return to Dashboard
+            </Link>
           </div>
         ) : (
           <div className="max-w-4xl mx-auto space-y-6">
+            <div className="mb-4">
+              <Link
+                href="/"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-gray-600 text-sm border border-gray-200 hover:bg-gray-50 hover:text-gray-900 transition-all shadow-sm"
+              >
+                <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+              </Link>
+            </div>
             {/* Winner Card */}
             <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center">
               <Trophy
@@ -272,27 +194,46 @@ export default function ResumeComparisonPage() {
                         <span
                           className={cn(
                             "text-xs px-2 py-0.5 rounded-full font-medium",
-                            c.winner === "A"
-                              ? "bg-blue-100 text-blue-700"
-                              : c.winner === "B"
-                                ? "bg-pink-100 text-pink-700"
-                                : "bg-gray-100 text-gray-600",
+                            c.winner === "tie"
+                              ? "bg-blue-50 text-blue-600"
+                              : cn(
+                                  getTheme(result.winner === c.winner, false)
+                                    .bgPill,
+                                  getTheme(result.winner === c.winner, false)
+                                    .textPill,
+                                ),
                           )}
                         >
                           {c.winner === "tie" ? "Tie" : `Version ${c.winner}`}
                         </span>
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-4">
                         <div>
                           <div className="flex items-center gap-2 mb-0.5">
-                            <span className="text-xs text-gray-500">A</span>
-                            <span className="text-xs font-medium">
+                            <span
+                              className={cn(
+                                "text-xs font-semibold",
+                                getTheme(
+                                  result.winner === "A",
+                                  result.winner === "tie",
+                                ).text,
+                              )}
+                            >
+                              Version A
+                            </span>
+                            <span className="text-xs font-medium ml-auto">
                               {c.scoreA}/{c.maxScore}
                             </span>
                           </div>
-                          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-blue-500 rounded-full"
+                              className={cn(
+                                "h-full rounded-full transition-all duration-500",
+                                getTheme(
+                                  result.winner === "A",
+                                  result.winner === "tie",
+                                ).bgBar,
+                              )}
                               style={{
                                 width: `${(c.scoreA / c.maxScore) * 100}%`,
                               }}
@@ -301,14 +242,30 @@ export default function ResumeComparisonPage() {
                         </div>
                         <div>
                           <div className="flex items-center gap-2 mb-0.5">
-                            <span className="text-xs text-gray-500">B</span>
-                            <span className="text-xs font-medium">
+                            <span
+                              className={cn(
+                                "text-xs font-semibold",
+                                getTheme(
+                                  result.winner === "B",
+                                  result.winner === "tie",
+                                ).text,
+                              )}
+                            >
+                              Version B
+                            </span>
+                            <span className="text-xs font-medium ml-auto">
                               {c.scoreB}/{c.maxScore}
                             </span>
                           </div>
-                          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-pink-500 rounded-full"
+                              className={cn(
+                                "h-full rounded-full transition-all duration-500",
+                                getTheme(
+                                  result.winner === "B",
+                                  result.winner === "tie",
+                                ).bgBar,
+                              )}
                               style={{
                                 width: `${(c.scoreB / c.maxScore) * 100}%`,
                               }}
@@ -323,32 +280,88 @@ export default function ResumeComparisonPage() {
             )}
 
             <div className="grid md:grid-cols-2 gap-6">
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-blue-600 mb-3">
+              <div
+                className={cn(
+                  "rounded-xl border p-6 transition-colors",
+                  getTheme(result.winner === "A", result.winner === "tie")
+                    .borderMain,
+                  getTheme(result.winner === "A", result.winner === "tie")
+                    .bgCard,
+                )}
+              >
+                <h3
+                  className={cn(
+                    "text-lg font-semibold mb-3",
+                    getTheme(result.winner === "A", result.winner === "tie")
+                      .headerText,
+                  )}
+                >
                   Version A Strengths
                 </h3>
                 <ul className="space-y-2">
                   {result.strengthsA.map((s) => (
                     <li
                       key={s}
-                      className="flex items-start gap-2 p-2 bg-blue-50 rounded-lg text-sm text-gray-700 border border-blue-100"
+                      className={cn(
+                        "flex items-start gap-2 p-2 rounded-lg text-sm text-gray-700 border bg-white/50",
+                        getTheme(result.winner === "A", result.winner === "tie")
+                          .borderCard,
+                      )}
                     >
-                      <span className="text-blue-500">•</span> {s}
+                      <span
+                        className={
+                          getTheme(
+                            result.winner === "A",
+                            result.winner === "tie",
+                          ).bulletText
+                        }
+                      >
+                        •
+                      </span>{" "}
+                      {s}
                     </li>
                   ))}
                 </ul>
               </div>
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-pink-600 mb-3">
+              <div
+                className={cn(
+                  "rounded-xl border p-6 transition-colors",
+                  getTheme(result.winner === "B", result.winner === "tie")
+                    .borderMain,
+                  getTheme(result.winner === "B", result.winner === "tie")
+                    .bgCard,
+                )}
+              >
+                <h3
+                  className={cn(
+                    "text-lg font-semibold mb-3",
+                    getTheme(result.winner === "B", result.winner === "tie")
+                      .headerText,
+                  )}
+                >
                   Version B Strengths
                 </h3>
                 <ul className="space-y-2">
                   {result.strengthsB.map((s) => (
                     <li
                       key={s}
-                      className="flex items-start gap-2 p-2 bg-pink-50 rounded-lg text-sm text-gray-700 border border-pink-100"
+                      className={cn(
+                        "flex items-start gap-2 p-2 rounded-lg text-sm text-gray-700 border bg-white/50",
+                        getTheme(result.winner === "B", result.winner === "tie")
+                          .borderCard,
+                      )}
                     >
-                      <span className="text-pink-500">•</span> {s}
+                      <span
+                        className={
+                          getTheme(
+                            result.winner === "B",
+                            result.winner === "tie",
+                          ).bulletText
+                        }
+                      >
+                        •
+                      </span>{" "}
+                      {s}
                     </li>
                   ))}
                 </ul>

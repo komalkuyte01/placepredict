@@ -1,5 +1,6 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, type Part } from "@google/generative-ai";
 import { type NextRequest, NextResponse } from "next/server";
+import { generateWithFallback } from "@/lib/ml/gemini";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
@@ -15,21 +16,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { PDFParse } = await import("pdf-parse");
     const resumeBuffer = Buffer.from(await resumeFile.arrayBuffer());
-    const parser = new PDFParse({ data: new Uint8Array(resumeBuffer) });
-    const textResult = await parser.getText();
-    const resumeContent = textResult.text;
-    await parser.destroy();
+    const resumeFilePart: Part = {
+      inlineData: {
+        data: resumeBuffer.toString("base64"),
+        mimeType: "application/pdf",
+      },
+    };
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
-    const prompt = `You are an expert ATS (Applicant Tracking System) analyst and resume advisor.
+    const promptText = `You are an expert ATS (Applicant Tracking System) analyst and resume advisor.
 
 TASK: Analyze the following resume for ATS compatibility and provide a detailed score breakdown.
-
-RESUME TEXT:
-${resumeContent}
 
 Analyze and return a JSON object with EXACTLY this structure (no markdown, no code blocks, just raw JSON):
 {
@@ -53,8 +50,10 @@ Rules:
 - suggestions: list 4-6 specific, actionable improvements
 - breakdown scores should sum to the total ATS score`;
 
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
+    const responseText = await generateWithFallback(genAI, [
+      promptText,
+      resumeFilePart,
+    ]);
 
     let parsed: Record<string, unknown>;
     try {
@@ -71,8 +70,12 @@ Rules:
     }
 
     return NextResponse.json({ result: parsed });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("ATS Score error:", error);
-    return NextResponse.json({ error: "Analysis failed" }, { status: 500 });
+    const errMessage = error instanceof Error ? error.message : String(error);
+    return NextResponse.json(
+      { error: errMessage || "Analysis failed" },
+      { status: errMessage.includes("Quota") ? 429 : 500 },
+    );
   }
 }

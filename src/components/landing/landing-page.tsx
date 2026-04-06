@@ -12,9 +12,9 @@ import {
   FileSearch,
   FileText,
   FolderKanban,
-  GraduationCap,
   Lightbulb,
   Loader2,
+  type LucideIcon,
   Shield,
   Star,
   TrendingUp,
@@ -23,6 +23,11 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
+import { ATSModal } from "@/components/landing/modals/ats-modal";
+import { CompareModal } from "@/components/landing/modals/compare-modal";
+import { JDMatchModal } from "@/components/landing/modals/jd-modal";
+import { PredictionModal } from "@/components/landing/modals/prediction-modal";
+import { ProjectModal } from "@/components/landing/modals/project-modal";
 import { Footer } from "@/components/shared/footer";
 import { NavHeader } from "@/components/shared/nav-header";
 
@@ -30,10 +35,22 @@ import { NavHeader } from "@/components/shared/nav-header";
  * Landing page — common entry point for all tools.
  * Uses Next.js routing to navigate to each tool.
  */
+type ToolData = {
+  href: string;
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  color: string;
+  badge: string;
+  recommended: boolean;
+  actionText: string;
+};
+
 export function LandingPage() {
   const router = useRouter();
   const [isUploading, _setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedTool, setSelectedTool] = useState<ToolData | null>(null);
 
   const [emblaRef, emblaApi] = useEmblaCarousel({
     loop: true,
@@ -341,9 +358,10 @@ export function LandingPage() {
                     key={tool.href}
                     className="flex-[0_0_75%] sm:flex-[0_0_50%] lg:flex-[0_0_33.333%] min-w-0 pl-4 sm:pl-5"
                   >
-                    <Link
-                      href={tool.href}
-                      className="flex flex-col min-h-[240px] sm:min-h-[280px] h-full relative p-6 sm:p-8 rounded-2xl sm:rounded-3xl border border-gray-200 hover:border-gray-300 hover:shadow-xl hover:shadow-gray-100/50 transition-all duration-300 hover:-translate-y-1 group/card"
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTool(tool)}
+                      className="text-left w-full flex flex-col min-h-[240px] sm:min-h-[280px] h-full relative p-6 sm:p-8 rounded-2xl sm:rounded-3xl border border-gray-200 hover:border-gray-300 hover:shadow-xl hover:shadow-gray-100/50 transition-all duration-300 hover:-translate-y-1 group/card"
                       style={{ backgroundColor: `${tool.color}08` }}
                     >
                       {tool.recommended && (
@@ -378,7 +396,7 @@ export function LandingPage() {
                           <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover/card:translate-x-1 transition-transform" />
                         </div>
                       </div>
-                    </Link>
+                    </button>
                   </div>
                 ))}
               </div>
@@ -437,6 +455,58 @@ export function LandingPage() {
 
       {/* Footer */}
       <Footer />
+
+      {/* Tool Info Modal */}
+      {selectedTool && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity">
+          <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="relative p-6 sm:p-8 border-b border-gray-100">
+              <button
+                type="button"
+                onClick={() => setSelectedTool(null)}
+                className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 rounded-full transition-colors"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+              <div className="flex items-center gap-4 mb-4">
+                <div
+                  className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: `${selectedTool.color}25` }}
+                >
+                  <selectedTool.icon
+                    className="w-8 h-8"
+                    style={{ color: selectedTool.color }}
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-2xl font-bold text-gray-900">
+                      {selectedTool.title}
+                    </h2>
+                    {selectedTool.badge && (
+                      <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-gray-100 text-gray-600">
+                        {selectedTool.badge}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-gray-500 mt-1 line-clamp-2">
+                    {selectedTool.description}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 sm:p-8 bg-gray-50/50">
+              {selectedTool.href === "/prediction" && <PredictionModal />}
+              {selectedTool.href === "/jd-matching" && <JDMatchModal />}
+              {selectedTool.href === "/ats-score" && <ATSModal />}
+              {selectedTool.href === "/project-assessment" && <ProjectModal />}
+              {selectedTool.href === "/resume-comparison" && <CompareModal />}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

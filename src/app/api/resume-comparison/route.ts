@@ -1,5 +1,6 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, type Part } from "@google/generative-ai";
 import { type NextRequest, NextResponse } from "next/server";
+import { generateWithFallback } from "@/lib/ml/gemini";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
@@ -16,31 +17,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { PDFParse } = await import("pdf-parse");
-    const parserA = new PDFParse({
-      data: new Uint8Array(await resumeA.arrayBuffer()),
-    });
-    const parsedA = await parserA.getText();
-    await parserA.destroy();
-    const parserB = new PDFParse({
-      data: new Uint8Array(await resumeB.arrayBuffer()),
-    });
-    const parsedB = await parserB.getText();
-    await parserB.destroy();
+    const resumeABuffer = Buffer.from(await resumeA.arrayBuffer());
+    const resumeAFilePart: Part = {
+      inlineData: {
+        data: resumeABuffer.toString("base64"),
+        mimeType: "application/pdf",
+      },
+    };
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const resumeBBuffer = Buffer.from(await resumeB.arrayBuffer());
+    const resumeBFilePart: Part = {
+      inlineData: {
+        data: resumeBBuffer.toString("base64"),
+        mimeType: "application/pdf",
+      },
+    };
 
-    const prompt = `You are an expert resume advisor and career counselor.
-
-TASK: Compare these two resume versions and determine which is better for software developer job applications.
-
-RESUME VERSION A:
-${parsedA.text}
-
-RESUME VERSION B:
-${parsedB.text}
-
-Analyze and return a JSON object with EXACTLY this structure (no markdown, no code blocks, just raw JSON):
+    const promptParts: (string | Part)[] = [
+      "You are an expert resume advisor and career counselor.\n\n",
+      "TASK: Compare these two resume versions and determine which is better for software developer job applications.\n\n",
+      "RESUME VERSION A:\n",
+      resumeAFilePart,
+      "\n\nRESUME VERSION B:\n",
+      resumeBFilePart,
+      `\n\nAnalyze and return a JSON object with EXACTLY this structure (no markdown, no code blocks, just raw JSON):
 {
   "winner": "A|B|tie",
   "winnerReason": "<2-3 sentence explanation of why one version is better>",
@@ -62,10 +62,10 @@ Rules:
 - Be thorough and compare every section
 - Consider ATS compatibility, readability, impact, and professionalism
 - strengthsA/B: list 3-5 unique strengths for each version
-- recommendation: provide actionable advice on which version to use and what elements to combine`;
+- recommendation: provide actionable advice on which version to use and what elements to combine`,
+    ];
 
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
+    const responseText = await generateWithFallback(genAI, promptParts);
 
     let parsed: Record<string, unknown>;
     try {
@@ -85,8 +85,12 @@ Rules:
     }
 
     return NextResponse.json({ result: parsed });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Resume Comparison error:", error);
-    return NextResponse.json({ error: "Comparison failed" }, { status: 500 });
+    const errMessage = error instanceof Error ? error.message : String(error);
+    return NextResponse.json(
+      { error: errMessage || "Comparison failed" },
+      { status: errMessage.includes("Quota") ? 429 : 500 },
+    );
   }
 }

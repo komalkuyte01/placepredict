@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { type NextRequest, NextResponse } from "next/server";
+import { generateWithFallback } from "@/lib/ml/gemini";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
@@ -14,8 +15,6 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
-
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     const prompt = `You are an expert software engineering interviewer and project evaluator.
 
@@ -44,8 +43,7 @@ Rules:
 - recruiterTips: 3-5 ways to present/describe this project to impress recruiters
 - Be realistic but constructive in scoring`;
 
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
+    const responseText = await generateWithFallback(genAI, [prompt]);
 
     let parsed: Record<string, unknown>;
     try {
@@ -64,8 +62,12 @@ Rules:
     }
 
     return NextResponse.json({ result: parsed });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Project Assessment error:", error);
-    return NextResponse.json({ error: "Assessment failed" }, { status: 500 });
+    const errMessage = error instanceof Error ? error.message : String(error);
+    return NextResponse.json(
+      { error: errMessage || "Assessment failed" },
+      { status: errMessage.includes("Quota") ? 429 : 500 },
+    );
   }
 }

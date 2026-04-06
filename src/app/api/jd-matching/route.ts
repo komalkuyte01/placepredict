@@ -1,5 +1,6 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, type Part } from "@google/generative-ai";
 import { type NextRequest, NextResponse } from "next/server";
+import { generateWithFallback } from "@/lib/ml/gemini";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
@@ -17,39 +18,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { PDFParse } = await import("pdf-parse");
+    // Prepare parts
+    const promptParts: (string | Part)[] = [
+      "You are an expert talent acquisition specialist and resume analyzer.\n\n",
+      "TASK: Compare the following resume against the job description and provide a detailed match analysis.\n\n",
+      "JOB DESCRIPTION:\n",
+    ];
 
-    // Extract text from files
-    let jdContent = jdText?.trim() || "";
     if (jdFile) {
-      const jdParser = new PDFParse({
-        data: new Uint8Array(await jdFile.arrayBuffer()),
+      const jdBuffer = Buffer.from(await jdFile.arrayBuffer());
+      promptParts.push({
+        inlineData: {
+          data: jdBuffer.toString("base64"),
+          mimeType: "application/pdf",
+        },
       });
-      const jdResult = await jdParser.getText();
-      jdContent = jdResult.text;
-      await jdParser.destroy();
+    } else {
+      promptParts.push(jdText?.trim() || "");
     }
 
-    const resumeParser = new PDFParse({
-      data: new Uint8Array(await resumeFile.arrayBuffer()),
+    promptParts.push("\n\nRESUME:\n");
+    const resumeBuffer = Buffer.from(await resumeFile.arrayBuffer());
+    promptParts.push({
+      inlineData: {
+        data: resumeBuffer.toString("base64"),
+        mimeType: "application/pdf",
+      },
     });
-    const resumeResult = await resumeParser.getText();
-    const resumeContent = resumeResult.text;
-    await resumeParser.destroy();
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
-    const prompt = `You are an expert talent acquisition specialist and resume analyzer.
-
-TASK: Compare the following resume against the job description and provide a detailed match analysis.
-
-JOB DESCRIPTION:
-${jdContent}
-
-RESUME:
-${resumeContent}
-
-Analyze and return a JSON object with EXACTLY this structure (no markdown, no code blocks, just raw JSON):
+    const instructions = `\n\nAnalyze and return a JSON object with EXACTLY this structure (no markdown, no code blocks, just raw JSON):
 {
   "overallScore": <number 0-100>,
   "missingSkills": [{"skill": "<skill name>", "importance": "high|medium|low"}],
@@ -68,8 +65,9 @@ Rules:
 - Provide actionable suggestions
 - keywordCoverage = percentage of JD keywords found in resume`;
 
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
+    promptParts.push(instructions);
+
+    const responseText = await generateWithFallback(genAI, promptParts);
 
     // Parse JSON from response
     let parsed: Record<string, unknown>;
@@ -90,8 +88,12 @@ Rules:
     }
 
     return NextResponse.json({ result: parsed });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("JD Matching error:", error);
-    return NextResponse.json({ error: "Analysis failed" }, { status: 500 });
+    const errMessage = error instanceof Error ? error.message : String(error);
+    return NextResponse.json(
+      { error: errMessage || "Analysis failed" },
+      { status: errMessage.includes("Quota") ? 429 : 500 },
+    );
   }
 }
