@@ -1,6 +1,6 @@
 "use client";
 
-import { FileSearch, Loader2 } from "lucide-react";
+import { AlertCircle, FileSearch, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { FileUploadZone } from "@/components/shared/file-upload-zone";
@@ -10,11 +10,13 @@ export function JDMatchModal({ color = "#06b6d4" }: { color?: string }) {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [jdText, setJdText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const router = useRouter();
 
   const handleAnalyze = useCallback(async () => {
     if ((!jdFile && !jdText.trim()) || !resumeFile) return;
     setIsLoading(true);
+    setErrorMsg(null);
 
     try {
       const formData = new FormData();
@@ -32,11 +34,18 @@ export function JDMatchModal({ color = "#06b6d4" }: { color?: string }) {
         sessionStorage.setItem("jdSettings", JSON.stringify(data.result));
         router.push("/jd-matching");
       } else {
-        const err = await response.text();
-        alert(`Analysis failed: ${err}`);
+        const errText = await response.text();
+        let errMsg = errText;
+        try {
+          const errData = JSON.parse(errText);
+          errMsg = errData.error || errText;
+        } catch {
+          // ignore
+        }
+        setErrorMsg(errMsg);
       }
     } catch {
-      alert("Failed to analyze. Please try again.");
+      setErrorMsg("Failed to analyze. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -50,23 +59,38 @@ export function JDMatchModal({ color = "#06b6d4" }: { color?: string }) {
         <FileUploadZone
           label="Job Description"
           file={jdFile}
-          onFileChange={setJdFile}
+          onFileChange={(file) => {
+            setJdFile(file);
+            setErrorMsg(null);
+          }}
           hint="PDF or paste text"
           allowText
           defaultMode="text"
           textValue={jdText}
-          onTextChange={setJdText}
+          onTextChange={(text) => {
+            setJdText(text);
+            setErrorMsg(null);
+          }}
           textPlaceholder="Paste the job description here..."
         />
         <FileUploadZone
           label="Your Resume"
           file={resumeFile}
-          onFileChange={setResumeFile}
+          onFileChange={(file) => {
+            setResumeFile(file);
+            setErrorMsg(null);
+          }}
           hint="PDF file up to 5MB"
         />
       </div>
 
       <div className="mt-8 flex flex-col items-center">
+        {errorMsg && (
+          <div className="w-full max-w-md mb-4 px-4 py-3 bg-red-50 text-red-600 rounded-lg text-sm flex items-start gap-2 border border-red-100 shadow-sm animate-in fade-in slide-in-from-bottom-2">
+            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <span className="leading-relaxed">{errorMsg}</span>
+          </div>
+        )}
         <button
           type="button"
           onClick={handleAnalyze}
