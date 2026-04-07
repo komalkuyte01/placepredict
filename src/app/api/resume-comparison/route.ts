@@ -40,7 +40,23 @@ export async function POST(request: NextRequest) {
       resumeAFilePart,
       "\n\nRESUME VERSION B:\n",
       resumeBFilePart,
-      `\n\nAnalyze and return a JSON object with EXACTLY this structure (no markdown, no code blocks, just raw JSON):
+      `\n\nFirst, determine if both documents are valid resumes.
+If BOTH documents are false, gibberish, certificates, or not professional resumes, return EXACTLY this JSON object (and nothing else):
+{
+  "error": "Please enter valid resumes"
+}
+
+If ONLY Resume Version A is false or invalid, return EXACTLY this JSON object (and nothing else):
+{
+  "error": "Resume A is invalid"
+}
+
+If ONLY Resume Version B is false or invalid, return EXACTLY this JSON object (and nothing else):
+{
+  "error": "Resume B is invalid"
+}
+
+Otherwise, analyze and return a JSON object with EXACTLY this structure (no markdown, no code blocks, just raw JSON):
 {
   "winner": "A|B|tie",
   "winnerReason": "<2-3 sentence explanation of why one version is better>",
@@ -59,6 +75,7 @@ export async function POST(request: NextRequest) {
 }
 
 Rules:
+- Validate that the documents are resumes before analyzing.
 - Be thorough and compare every section
 - Consider ATS compatibility, readability, impact, and professionalism
 - strengthsA/B: list 3-5 unique strengths for each version
@@ -71,6 +88,10 @@ Rules:
     try {
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       parsed = JSON.parse(jsonMatch?.[0] || responseText);
+
+      if (parsed.error && typeof parsed.error === "string") {
+        return NextResponse.json({ error: parsed.error }, { status: 400 });
+      }
     } catch {
       parsed = {
         winner: "tie",
