@@ -1,6 +1,6 @@
 "use client";
 
-import { FileCheck, Loader2 } from "lucide-react";
+import { AlertCircle, FileCheck, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { FileUploadZone } from "@/components/shared/file-upload-zone";
@@ -8,11 +8,13 @@ import { FileUploadZone } from "@/components/shared/file-upload-zone";
 export function ATSModal({ color = "#10b981" }: { color?: string }) {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const router = useRouter();
 
   const handleAnalyze = useCallback(async () => {
     if (!resumeFile) return;
     setIsLoading(true);
+    setErrorMsg(null);
     try {
       const formData = new FormData();
       formData.append("resume", resumeFile);
@@ -25,10 +27,18 @@ export function ATSModal({ color = "#10b981" }: { color?: string }) {
         sessionStorage.setItem("atsSettings", JSON.stringify(data.result));
         router.push("/ats-score");
       } else {
-        alert("Analysis failed. Please try again.");
+        const errText = await response.text();
+        let errMsg = errText;
+        try {
+          const errData = JSON.parse(errText);
+          errMsg = errData.error || errText;
+        } catch {
+          // ignore
+        }
+        setErrorMsg(errMsg);
       }
     } catch {
-      alert("Failed to analyze. Please try again.");
+      setErrorMsg("Failed to analyze. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -39,11 +49,20 @@ export function ATSModal({ color = "#10b981" }: { color?: string }) {
       <FileUploadZone
         label="Your Resume"
         file={resumeFile}
-        onFileChange={setResumeFile}
+        onFileChange={(file) => {
+          setResumeFile(file);
+          setErrorMsg(null);
+        }}
         hint="PDF file up to 5MB"
       />
 
       <div className="mt-8 flex flex-col items-center">
+        {errorMsg && (
+          <div className="w-full max-w-md mb-4 px-4 py-3 bg-red-50 text-red-600 rounded-lg text-sm flex items-start gap-2 border border-red-100 shadow-sm animate-in fade-in slide-in-from-bottom-2">
+            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <span className="leading-relaxed">{errorMsg}</span>
+          </div>
+        )}
         <button
           type="button"
           onClick={handleAnalyze}

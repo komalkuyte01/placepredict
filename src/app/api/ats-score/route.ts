@@ -26,9 +26,15 @@ export async function POST(request: NextRequest) {
 
     const promptText = `You are an expert ATS (Applicant Tracking System) analyst and resume advisor.
 
-TASK: Analyze the following resume for ATS compatibility and provide a detailed score breakdown.
+TASK: Analyze the following document for ATS compatibility and provide a detailed score breakdown.
 
-Analyze and return a JSON object with EXACTLY this structure (no markdown, no code blocks, just raw JSON):
+First, determine if the provided document is valid. 
+If the document is a certificate, an unrelated document, garbage data, or does not realistically look like a genuine professional resume, return EXACTLY the following JSON object (and nothing else):
+{
+  "error": "Please upload a valid resume."
+}
+
+Otherwise, analyze and return a JSON object with EXACTLY this structure (no markdown, no code blocks, just raw JSON):
 {
   "score": <number 0-100>,
   "improving": [{"factor": "<factor name>", "detail": "<why it helps>"}],
@@ -43,6 +49,7 @@ Analyze and return a JSON object with EXACTLY this structure (no markdown, no co
 }
 
 Rules:
+- Validate that the document is a resume before analyzing.
 - Score should reflect real ATS compatibility
 - Check for: proper headings, consistent formatting, relevant keywords, action verbs, quantified achievements, proper file structure
 - improving: list 3-5 factors that are helping the ATS score
@@ -59,6 +66,10 @@ Rules:
     try {
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       parsed = JSON.parse(jsonMatch?.[0] || responseText);
+
+      if (parsed.error && typeof parsed.error === "string") {
+        return NextResponse.json({ error: parsed.error }, { status: 400 });
+      }
     } catch {
       parsed = {
         score: 50,
