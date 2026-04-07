@@ -9,13 +9,12 @@ import type {
   ResumeParseResult,
 } from "@/lib/types/placement";
 
-export function PredictionModal() {
+export function PredictionModal({ color = "#1360fa" }: { color?: string }) {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   const handleManualEntry = () => {
-    // Save empty profile and manual mode to session
     sessionStorage.setItem(
       "predictionInitialState",
       JSON.stringify({
@@ -128,7 +127,6 @@ export function PredictionModal() {
             };
           }
 
-          // Transition to form page
           sessionStorage.setItem(
             "predictionInitialState",
             JSON.stringify({
@@ -156,7 +154,7 @@ export function PredictionModal() {
   );
 
   return (
-    <div className="flex flex-col space-y-6">
+    <div className="flex flex-col space-y-3">
       <input
         ref={fileInputRef}
         type="file"
@@ -167,7 +165,7 @@ export function PredictionModal() {
 
       {isUploading ? (
         <div className="flex flex-col items-center justify-center p-12 space-y-4">
-          <Loader2 className="w-8 h-8 text-[#1360fa] animate-spin" />
+          <Loader2 className="w-8 h-8 animate-spin" style={{ color }} />
           <div className="text-center">
             <h3 className="text-lg font-semibold text-gray-900 mb-1">
               Parsing Resume
@@ -182,9 +180,12 @@ export function PredictionModal() {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="group p-6 bg-white rounded-xl border border-gray-200 hover:border-[#1360fa]/30 hover:shadow-lg hover:shadow-[#1360fa]/5 transition-all duration-300 text-left"
+            className="group p-6 bg-white rounded-xl border border-gray-200 hover:shadow-lg transition-all duration-300 text-left"
           >
-            <div className="w-12 h-12 rounded-xl bg-[#1360fa] flex items-center justify-center mb-4 shadow-lg shadow-[#1360fa]/20">
+            <div
+              className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 shadow-lg"
+              style={{ backgroundColor: color }}
+            >
               <Upload className="w-6 h-6 text-white" />
             </div>
             <h3 className="text-base font-semibold text-gray-900 mb-1">

@@ -34,41 +34,26 @@ export default function JDMatchingPage() {
     setIsLoaded(true);
   }, []);
 
-  const handleReset = () => {
-    sessionStorage.removeItem("jdSettings");
-    window.location.href = "/";
-  };
-
   if (!isLoaded) return null;
 
   return (
-    <div className="min-h-screen bg-[#FAFBFC] flex flex-col">
+    <div className="min-h-screen bg-[#FAFBFC] flex flex-col overflow-x-hidden">
       <NavHeader />
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14 pb-10 flex-1 pt-22 md:pt-24">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14 pb-10 flex-1 pt-20 md:pt-22">
         {!result ? (
-          <div className="text-center py-20">
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">
-              No Data Found
-            </h1>
-            <p className="text-gray-500 mb-8">
-              Please start from the dashboard directly to upload your documents.
-            </p>
-            <Link
-              href="/"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#1360fa] text-white font-medium hover:bg-[#5c35e6] transition-colors shadow-lg"
-            >
-              <ArrowLeft className="w-4 h-4" /> Return to Dashboard
-            </Link>
-          </div>
+          (() => {
+            window.location.href = "/#tools";
+            return null;
+          })()
         ) : (
           <div className="max-w-4xl mx-auto space-y-6">
-            <div className="mb-4">
+            <div className="mb-2">
               <Link
                 href="/"
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-gray-600 text-sm border border-gray-200 hover:bg-gray-50 hover:text-gray-900 transition-all shadow-sm"
               >
-                <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+                <ArrowLeft className="w-4 h-4" /> Back
               </Link>
             </div>
             {/* Score Card */}
@@ -243,19 +228,19 @@ export default function JDMatchingPage() {
                 </ul>
               </div>
             )}
-
-            <div className="flex justify-center">
-              <button
-                type="button"
-                onClick={handleReset}
-                className="px-8 py-3 rounded-lg font-semibold bg-gray-900 text-white hover:bg-gray-800 transition-colors"
-              >
-                Analyze Another
-              </button>
-            </div>
           </div>
         )}
       </main>
+
+      <div className="max-w-6xl mx-auto w-full px-4 sm:px-6 md:px-10 lg:px-14 pb-4 flex justify-center">
+        <div className="w-fit p-4 rounded-xl bg-amber-50 border border-amber-200">
+          <p className="text-amber-700 text-xs leading-relaxed text-left">
+            ⚠️ <strong className="font-medium">Disclaimer:</strong> The results
+            provided are for guidance only. They do not guarantee any outcomes.
+          </p>
+        </div>
+      </div>
+
       <Footer />
     </div>
   );

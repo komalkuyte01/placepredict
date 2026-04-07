@@ -7,7 +7,9 @@ interface FooterProps {
   showDisclaimer?: boolean;
 }
 
-export function Footer({ showDisclaimer = false }: FooterProps) {
+export function Footer({
+  showDisclaimer: _showDisclaimer = false,
+}: FooterProps) {
   return (
     <footer className="bg-gray-900 pt-10 pb-8 relative overflow-hidden mt-10">
       {/* Decorative Atmospheric Blobs */}
@@ -31,18 +33,6 @@ export function Footer({ showDisclaimer = false }: FooterProps) {
               personalized resume insights, and data-backed career guidance to
               secure their dream jobs.
             </p>
-            {showDisclaimer && (
-              <div className="p-4 mt-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                <p className="text-amber-500/90 text-xs leading-relaxed">
-                  ⚠️{" "}
-                  <strong className="font-medium text-amber-500">
-                    Disclaimer:
-                  </strong>{" "}
-                  The predictions provided are probabilistic models intended for
-                  guidance only. They do not guarantee any outcomes.
-                </p>
-              </div>
-            )}
           </div>
 
           {/* Quick Links */}
@@ -53,7 +43,7 @@ export function Footer({ showDisclaimer = false }: FooterProps) {
             <ul className="space-y-3 text-sm text-gray-400">
               <li>
                 <Link
-                  href="/prediction"
+                  href="/#tools"
                   className="hover:text-white transition-colors"
                 >
                   Placement Prediction
@@ -61,7 +51,7 @@ export function Footer({ showDisclaimer = false }: FooterProps) {
               </li>
               <li>
                 <Link
-                  href="/jd-matching"
+                  href="/#tools"
                   className="hover:text-white transition-colors"
                 >
                   Job Description Matching
@@ -69,7 +59,7 @@ export function Footer({ showDisclaimer = false }: FooterProps) {
               </li>
               <li>
                 <Link
-                  href="/ats-score"
+                  href="/#tools"
                   className="hover:text-white transition-colors"
                 >
                   Resume ATS Scoring
@@ -77,7 +67,7 @@ export function Footer({ showDisclaimer = false }: FooterProps) {
               </li>
               <li>
                 <Link
-                  href="/project-assessment"
+                  href="/#tools"
                   className="hover:text-white transition-colors"
                 >
                   Project Assessment
@@ -85,7 +75,7 @@ export function Footer({ showDisclaimer = false }: FooterProps) {
               </li>
               <li>
                 <Link
-                  href="/resume-comparison"
+                  href="/#tools"
                   className="hover:text-white transition-colors"
                 >
                   Resume Comparison

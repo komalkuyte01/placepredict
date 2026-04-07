@@ -32,6 +32,12 @@ export function NavHeader() {
           </Link>
           <div className="flex items-center gap-4 sm:gap-8">
             <Link
+              href="/"
+              className="hidden sm:block text-sm text-gray-600 font-medium hover:text-gray-900 transition-colors"
+            >
+              Home
+            </Link>
+            <Link
               href={featuresHref}
               className="hidden sm:block text-sm text-gray-600 font-medium hover:text-gray-900 transition-colors"
             >

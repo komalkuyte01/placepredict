@@ -12,6 +12,7 @@ interface FileUploadZoneProps {
   isLoading?: boolean;
   hint?: string;
   allowText?: boolean;
+  defaultMode?: "file" | "text";
   textValue?: string;
   onTextChange?: (value: string) => void;
   textPlaceholder?: string;
@@ -29,12 +30,13 @@ export function FileUploadZone({
   isLoading = false,
   hint = "PDF files accepted",
   allowText = false,
+  defaultMode = "file",
   textValue = "",
   onTextChange,
   textPlaceholder = "Or paste text content here...",
 }: FileUploadZoneProps) {
   const [isDragOver, setIsDragOver] = useState(false);
-  const [inputMode, setInputMode] = useState<"file" | "text">("file");
+  const [inputMode, setInputMode] = useState<"file" | "text">(defaultMode);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {

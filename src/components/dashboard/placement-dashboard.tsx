@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  ArrowLeft,
-  Briefcase,
-  CheckCircle,
-  ClipboardCheck,
-  PenLine,
-} from "lucide-react";
+import { Briefcase, CheckCircle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { CandidateForm } from "@/components/prediction/candidate-form";
 import { PredictionResults } from "@/components/prediction/prediction-results";
@@ -33,7 +27,7 @@ interface PlacementDashboardProps {
  * Main Placement Prediction Dashboard.
  */
 export function PlacementDashboard({
-  onBack,
+  onBack: _onBack,
   initialProfile,
   initialParseResult,
 }: PlacementDashboardProps) {
@@ -193,8 +187,20 @@ export function PlacementDashboard({
         )}
       </main>
 
-      {/* Footer - only show on input view */}
-      {view === "input" && <Footer showDisclaimer />}
+      {view === "input" && (
+        <>
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-10 lg:px-14">
+            <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
+              <p className="text-amber-700 text-xs leading-relaxed text-left">
+                ⚠️ <strong className="font-medium">Disclaimer:</strong> The
+                predictions provided are for guidance only. They do not
+                guarantee any outcomes.
+              </p>
+            </div>
+          </div>
+          <Footer />
+        </>
+      )}
     </div>
   );
 }

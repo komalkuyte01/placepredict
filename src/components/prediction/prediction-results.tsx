@@ -198,7 +198,6 @@ function computeReadinessTimeline(
 interface ScoreImpactItem {
   feature: string;
   impact: number; // positive or negative percentage points
-  explanation: string;
   type: "positive" | "negative" | "neutral";
 }
 
@@ -206,202 +205,134 @@ function computeScoreBreakdown(
   profile: CandidateProfile,
   prediction: PlacementPrediction,
 ): ScoreImpactItem[] {
-  const items: ScoreImpactItem[] = [];
-
-  // CGPA impact
-  const cgpa = profile.academic.cgpa ?? 0;
-  if (cgpa >= 8) {
-    items.push({
+  // We use a proportional point system so all items exactly sum to `prediction.probability`.
+  const factors = [
+    {
       feature: "CGPA",
-      impact: Math.round((cgpa - 7) * 4),
-      explanation: `Strong CGPA of ${cgpa} increased your score`,
-      type: "positive",
-    });
-  } else if (cgpa >= 7) {
-    items.push({
-      feature: "CGPA",
-      impact: Math.round((cgpa - 7) * 3),
-      explanation: `Decent CGPA of ${cgpa} slightly helped`,
-      type: "positive",
-    });
-  } else if (cgpa > 0) {
-    items.push({
-      feature: "CGPA",
-      impact: -Math.round((7 - cgpa) * 4),
-      explanation: `Low CGPA of ${cgpa} reduced your score`,
-      type: "negative",
-    });
-  }
-
-  // Internship impact
-  if (profile.technical.hasInternship) {
-    items.push({
-      feature: "Internship",
-      impact: 18,
-      explanation:
-        "Having internship experience significantly boosted your score",
-      type: "positive",
-    });
-  } else {
-    items.push({
-      feature: "Internship",
-      impact: -15,
-      explanation: "No internship experience reduced your score",
-      type: "negative",
-    });
-  }
-
-  // DSA Level
-  const dsa = profile.technical.dsaLevel;
-  if (dsa === "Advanced") {
-    items.push({
-      feature: "DSA Skills",
-      impact: 15,
-      explanation: "Advanced DSA skills strongly boosted your score",
-      type: "positive",
-    });
-  } else if (dsa === "Intermediate") {
-    items.push({
-      feature: "DSA Skills",
-      impact: 8,
-      explanation: "Intermediate DSA skills helped your score",
-      type: "positive",
-    });
-  } else if (dsa === "Basic") {
-    items.push({
-      feature: "DSA Skills",
-      impact: -8,
-      explanation: "Basic DSA level pulled your score down",
-      type: "negative",
-    });
-  } else {
-    items.push({
-      feature: "DSA Skills",
-      impact: -18,
-      explanation: "No DSA knowledge significantly reduced your score",
-      type: "negative",
-    });
-  }
-
-  // Technical skills
-  const skills = profile.technical.technicalSkills.length;
-  if (skills >= 5) {
-    items.push({
+      raw: Math.min(1.0, Math.max(0, ((profile.academic.cgpa ?? 0) - 5) / 5)), // 5.0 -> 0, 10.0 -> 1.0
+      weight: 1.5,
+    },
+    {
+      feature: "Clear Academic Record",
+      raw:
+        (profile.academic.backlogs ?? 0) === 0
+          ? 1.0
+          : (profile.academic.backlogs ?? 0) > 3
+            ? 0.0
+            : (3 - (profile.academic.backlogs ?? 0)) / 3,
+      weight: 1.0,
+    },
+    {
+      feature: "Internships",
+      raw: profile.technical.hasInternship ? 1.0 : 0.0,
+      weight: 2.0,
+    },
+    {
       feature: "Technical Skills",
-      impact: Math.min(12, skills * 2),
-      explanation: `${skills} technical skills gave a strong boost`,
-      type: "positive",
-    });
-  } else if (skills >= 3) {
-    items.push({
-      feature: "Technical Skills",
-      impact: skills * 2,
-      explanation: `${skills} technical skills helped your score`,
-      type: "positive",
-    });
-  } else {
-    items.push({
-      feature: "Technical Skills",
-      impact: -(3 - skills) * 5,
-      explanation: `Only ${skills} technical skill${skills !== 1 ? "s" : ""} hurt your score`,
-      type: "negative",
-    });
-  }
-
-  // Projects
-  const projects = profile.technical.projectsCount ?? 0;
-  if (projects >= 3) {
-    items.push({
+      raw: Math.min(1.0, profile.technical.technicalSkills.length / 5),
+      weight: 1.5,
+    },
+    {
+      feature: "DSA Skills",
+      raw:
+        profile.technical.dsaLevel === "Advanced"
+          ? 1.0
+          : profile.technical.dsaLevel === "Intermediate"
+            ? 0.6
+            : profile.technical.dsaLevel === "Basic"
+              ? 0.2
+              : 0.0,
+      weight: 2.0,
+    },
+    {
       feature: "Projects",
-      impact: Math.min(10, projects * 3),
-      explanation: `${projects} projects demonstrated practical experience`,
-      type: "positive",
-    });
-  } else if (projects > 0) {
-    items.push({
-      feature: "Projects",
-      impact: projects * 2 - 4,
-      explanation: `Only ${projects} project${projects > 1 ? "s" : ""} — more would help`,
-      type: projects >= 2 ? "neutral" : "negative",
-    });
-  } else {
-    items.push({
-      feature: "Projects",
-      impact: -10,
-      explanation: "No projects significantly reduced your score",
-      type: "negative",
-    });
-  }
-
-  // Backlogs
-  const backlogs = profile.academic.backlogs ?? 0;
-  if (backlogs > 0) {
-    items.push({
-      feature: "Backlogs",
-      impact: -backlogs * 8,
-      explanation: `${backlogs} active backlog${backlogs > 1 ? "s" : ""} heavily penalized your score`,
-      type: "negative",
-    });
-  }
-
-  // Certifications
-  const certs = profile.technical.certifications.length;
-  if (certs >= 2) {
-    items.push({
+      raw: Math.min(1.0, (profile.technical.projectsCount ?? 0) / 3),
+      weight: 1.5,
+    },
+    {
       feature: "Certifications",
-      impact: 6,
-      explanation: `${certs} certifications showed commitment to learning`,
-      type: "positive",
-    });
-  } else if (certs === 1) {
-    items.push({
-      feature: "Certifications",
-      impact: 3,
-      explanation: "1 certification gave a slight boost",
-      type: "positive",
-    });
-  }
-
-  // Aptitude
-  const apt = profile.softSkills.aptitudeScore;
-  if (apt >= 80) {
-    items.push({
+      raw: Math.min(1.0, profile.technical.certifications.length / 2),
+      weight: 0.5,
+    },
+    {
+      feature: "Hackathons",
+      raw: Math.min(1.0, (profile.experience.hackathonsCount ?? 0) / 2),
+      weight: 0.5,
+    },
+    {
+      feature: "Open Source",
+      raw: profile.experience.hasOpenSourceContributions ? 1.0 : 0.0,
+      weight: 0.5,
+    },
+    {
+      feature: "Resume ATS Score",
+      raw: (profile.experience.resumeATSScore ?? 0) / 100,
+      weight: 1.0,
+    },
+    {
       feature: "Aptitude Score",
-      impact: 5,
-      explanation: `Score of ${Math.round(apt)}% showed strong analytical ability`,
-      type: "positive",
-    });
-  } else if (apt < 50) {
-    items.push({
-      feature: "Aptitude Score",
-      impact: -6,
-      explanation: `Score of ${Math.round(apt)}% indicates need for improvement`,
-      type: "negative",
-    });
-  }
+      raw: Math.min(1.0, (profile.softSkills.aptitudeScore ?? 0) / 100),
+      weight: 1.0,
+    },
+    {
+      feature: "Communication Skills",
+      raw: Math.min(1.0, (profile.softSkills.communicationScore ?? 0) / 10),
+      weight: 0.5,
+    },
+    {
+      feature: "Core Subjects / 12th Academics",
+      raw: Math.min(
+        1.0,
+        ((profile.academic.twelfthPercentage ??
+          profile.academic.tenthPercentage ??
+          70) -
+          50) /
+          50,
+      ),
+      weight: 0.5,
+    },
+  ];
 
-  // Communication
-  const comm = profile.softSkills.communicationScore;
-  if (comm >= 8) {
-    items.push({
-      feature: "Communication",
-      impact: 4,
-      explanation: `Strong communication score of ${comm}/10`,
-      type: "positive",
-    });
-  } else if (comm < 5) {
-    items.push({
-      feature: "Communication",
-      impact: -5,
-      explanation: `Communication score of ${comm}/10 needs improvement`,
-      type: "negative",
-    });
-  }
+  // Calculate weighted raw scores
+  const weightedScores = factors.map((f) => ({
+    ...f,
+    weightedRaw: f.raw * f.weight,
+  }));
 
-  // Sort by absolute impact
-  items.sort((a, b) => Math.abs(b.impact) - Math.abs(a.impact));
+  const rawSum = weightedScores.reduce((sum, f) => sum + f.weightedRaw, 0);
 
-  return items;
+  // If rawSum is 0 (completely blank profile), divide evenly (or just leave as 0)
+  const scale = rawSum > 0 ? prediction.probability / rawSum : 0;
+
+  let currentSum = 0;
+  const items: ScoreImpactItem[] = weightedScores.map((f, index) => {
+    // Round to 1 decimal
+    let impact = Number((f.weightedRaw * scale).toFixed(1));
+
+    // Ensure the last item balances any floating point rounding issues exactly
+    if (index === factors.length - 1) {
+      impact = Number((prediction.probability - currentSum).toFixed(1));
+      // Handle edge cases where floating point math creates negative remaining impact
+      if (impact < 0) impact = 0;
+    }
+
+    currentSum += impact;
+
+    // Determine type by how close they got to their maximum potential
+    const _maxPotential = f.weight * scale;
+    // If they got >= 60% of potential, it's positive. If <= 25%, negative.
+    let type: "positive" | "negative" | "neutral" = "neutral";
+    if (f.raw >= 0.6) type = "positive";
+    else if (f.raw <= 0.25) type = "negative";
+
+    return {
+      feature: f.feature,
+      impact: impact,
+      type,
+    };
+  });
+
+  return items.sort((a, b) => b.impact - a.impact);
 }
 
 /**
@@ -425,6 +356,7 @@ export function PredictionResults({
     strengths: boolean;
     weaknesses: boolean;
   }>({ issues: false, strengths: false, weaknesses: false });
+  const [isBreakdownExpanded, setIsBreakdownExpanded] = useState(false);
 
   const toggleSection = (section: "issues" | "strengths" | "weaknesses") => {
     setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
@@ -656,29 +588,31 @@ export function PredictionResults({
             {timeline.items.map((item, index) => (
               <div
                 key={item.area}
-                className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100 group hover:border-[#1360fa]/20 hover:bg-[#1360fa]/5 transition-all"
+                className="flex items-center gap-1.5 sm:gap-3 p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-100 group hover:border-[#1360fa]/20 hover:bg-[#1360fa]/5 transition-all"
               >
-                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#1360fa]/10 text-[#1360fa] flex-shrink-0">
-                  <span className="text-xs font-bold">{index + 1}</span>
+                <div className="flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-md sm:rounded-lg bg-[#1360fa]/10 text-[#1360fa] flex-shrink-0">
+                  <span className="text-[10px] sm:text-xs font-bold">
+                    {index + 1}
+                  </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-gray-900">
+                  <div className="flex items-center gap-1 sm:gap-2">
+                    <span className="text-[11px] sm:text-sm font-medium text-gray-900 truncate">
                       {item.area}
                     </span>
-                    <ArrowRight className="w-3 h-3 text-gray-400" />
-                    <span className="text-sm text-emerald-600 font-medium">
+                    <ArrowRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-gray-400 flex-shrink-0" />
+                    <span className="text-[11px] sm:text-sm text-emerald-600 font-medium truncate">
                       {item.target}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-500 mt-0.5">
+                  <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 truncate">
                     Currently:{" "}
                     <span className="text-red-500">{item.current}</span>
                   </p>
                 </div>
-                <div className="flex items-center gap-1 px-2.5 py-1 bg-[#1360fa]/10 rounded-full flex-shrink-0">
-                  <Clock className="w-3 h-3 text-[#1360fa]" />
-                  <span className="text-xs font-medium text-[#1360fa]">
+                <div className="flex items-center gap-1 px-1.5 py-0.5 sm:px-2.5 sm:py-1 bg-[#1360fa]/10 rounded-full flex-shrink-0 min-w-0">
+                  <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#1360fa] flex-shrink-0" />
+                  <span className="text-[10px] sm:text-xs font-medium text-[#1360fa] truncate">
                     {item.timeEstimate}
                   </span>
                 </div>
@@ -698,16 +632,14 @@ export function PredictionResults({
           How each factor contributed to your {prediction.probability}% score
         </p>
 
-        <div className="space-y-3">
-          {scoreBreakdown.map((item) => {
-            const maxAbsImpact = Math.max(
-              ...scoreBreakdown.map((i) => Math.abs(i.impact)),
-              1,
-            );
-            const barWidth = Math.min(
-              100,
-              (Math.abs(item.impact) / maxAbsImpact) * 100,
-            );
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+          {(isBreakdownExpanded
+            ? scoreBreakdown
+            : scoreBreakdown.slice(0, 6)
+          ).map((item) => {
+            // Use an absolute scale where 100% width = 100% impact
+            // This prevents a 15% impact from deceptively taking up the entire bar.
+            const barWidth = Math.min(100, Math.abs(item.impact));
 
             return (
               <div key={item.feature} className="group">
@@ -718,7 +650,7 @@ export function PredictionResults({
                     ) : item.type === "negative" ? (
                       <TrendingDown className="w-3.5 h-3.5 text-red-500" />
                     ) : (
-                      <Minus className="w-3.5 h-3.5 text-gray-400" />
+                      <Minus className="w-3.5 h-3.5 text-amber-500" />
                     )}
                     <span className="text-sm font-medium text-gray-900">
                       {item.feature}
@@ -729,7 +661,7 @@ export function PredictionResults({
                       "text-sm font-bold",
                       item.type === "positive" && "text-emerald-600",
                       item.type === "negative" && "text-red-600",
-                      item.type === "neutral" && "text-gray-500",
+                      item.type === "neutral" && "text-amber-500",
                     )}
                   >
                     {item.impact > 0 ? "+" : ""}
@@ -746,31 +678,43 @@ export function PredictionResults({
                         item.type === "negative" &&
                           "bg-gradient-to-r from-red-400 to-red-500",
                         item.type === "neutral" &&
-                          "bg-gradient-to-r from-gray-300 to-gray-400",
+                          "bg-gradient-to-r from-amber-400 to-amber-500",
                       )}
                       style={{ width: `${barWidth}%` }}
                     />
                   </div>
                 </div>
-                <p className="text-xs text-gray-500 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {item.explanation}
-                </p>
               </div>
             );
           })}
         </div>
 
+        {scoreBreakdown.length > 6 && (
+          <button
+            type="button"
+            onClick={() => setIsBreakdownExpanded(!isBreakdownExpanded)}
+            className="w-full mt-3 py-2 text-sm font-medium text-[hsl(240,3.8%,46.1%)] hover:text-gray-900 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors flex items-center justify-center gap-2"
+          >
+            {isBreakdownExpanded
+              ? "Show Less"
+              : `View ${scoreBreakdown.length - 6} More Factors`}
+          </button>
+        )}
+
         {/* Legend */}
         <div className="flex flex-wrap items-center gap-4 mt-5 pt-4 border-t border-gray-100 text-xs text-gray-500">
           <span className="flex items-center gap-1.5">
             <div className="w-3 h-1.5 rounded-full bg-emerald-500" />
-            Boosted score
+            Strong Contribution
+          </span>
+          <span className="flex items-center gap-1.5">
+            <div className="w-3 h-1.5 rounded-full bg-amber-400" />
+            Average Contribution
           </span>
           <span className="flex items-center gap-1.5">
             <div className="w-3 h-1.5 rounded-full bg-red-500" />
-            Reduced score
+            Weak Contribution
           </span>
-          <span className="text-gray-400 italic">Hover for details</span>
         </div>
       </div>
 

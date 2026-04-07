@@ -4,9 +4,8 @@ import { FileCheck, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { FileUploadZone } from "@/components/shared/file-upload-zone";
-import { cn } from "@/lib/utils/cn";
 
-export function ATSModal() {
+export function ATSModal({ color = "#10b981" }: { color?: string }) {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -23,9 +22,7 @@ export function ATSModal() {
       });
       if (response.ok) {
         const data = await response.json();
-        // Save to session storage
         sessionStorage.setItem("atsSettings", JSON.stringify(data.result));
-        // Redirect to results
         router.push("/ats-score");
       } else {
         alert("Analysis failed. Please try again.");
@@ -51,12 +48,10 @@ export function ATSModal() {
           type="button"
           onClick={handleAnalyze}
           disabled={isLoading || !resumeFile}
-          className={cn(
-            "w-full sm:w-auto px-8 py-3.5 rounded-full font-semibold flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl",
-            isLoading || !resumeFile
-              ? "bg-gray-100 text-gray-400 cursor-not-allowed shadow-none"
-              : "bg-[#1360fa] text-white hover:bg-[#5c35e6] shadow-[#1360fa]/25 hover:shadow-[#1360fa]/30",
-          )}
+          className="w-full sm:w-auto px-8 py-3.5 rounded-full font-semibold flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:shadow-none text-white"
+          style={{
+            backgroundColor: isLoading || !resumeFile ? undefined : color,
+          }}
         >
           {isLoading ? (
             <>
@@ -68,9 +63,6 @@ export function ATSModal() {
             </>
           )}
         </button>
-        <p className="text-xs text-gray-400 mt-4 text-center">
-          Files are processed locally and never stored permanently.
-        </p>
       </div>
     </div>
   );

@@ -4,9 +4,8 @@ import { FileSearch, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { FileUploadZone } from "@/components/shared/file-upload-zone";
-import { cn } from "@/lib/utils/cn";
 
-export function JDMatchModal() {
+export function JDMatchModal({ color = "#06b6d4" }: { color?: string }) {
   const [jdFile, setJdFile] = useState<File | null>(null);
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [jdText, setJdText] = useState("");
@@ -30,9 +29,7 @@ export function JDMatchModal() {
 
       if (response.ok) {
         const data = await response.json();
-        // Save to session storage
         sessionStorage.setItem("jdSettings", JSON.stringify(data.result));
-        // Redirect to results
         router.push("/jd-matching");
       } else {
         const err = await response.text();
@@ -45,15 +42,18 @@ export function JDMatchModal() {
     }
   }, [jdFile, jdText, resumeFile, router]);
 
+  const isDisabled = isLoading || (!jdFile && !jdText.trim()) || !resumeFile;
+
   return (
     <div className="flex flex-col">
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="flex flex-col gap-5">
         <FileUploadZone
           label="Job Description"
           file={jdFile}
           onFileChange={setJdFile}
           hint="PDF or paste text"
           allowText
+          defaultMode="text"
           textValue={jdText}
           onTextChange={setJdText}
           textPlaceholder="Paste the job description here..."
@@ -70,13 +70,11 @@ export function JDMatchModal() {
         <button
           type="button"
           onClick={handleAnalyze}
-          disabled={isLoading || (!jdFile && !jdText.trim()) || !resumeFile}
-          className={cn(
-            "w-full sm:w-auto px-8 py-3.5 rounded-full font-semibold flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl",
-            isLoading || (!jdFile && !jdText.trim()) || !resumeFile
-              ? "bg-gray-100 text-gray-400 cursor-not-allowed shadow-none"
-              : "bg-[#1360fa] text-white hover:bg-[#5c35e6] shadow-[#1360fa]/25 hover:shadow-[#1360fa]/30",
-          )}
+          disabled={isDisabled}
+          className="w-full sm:w-auto px-8 py-3.5 rounded-full font-semibold flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed disabled:shadow-none text-white"
+          style={{
+            backgroundColor: isDisabled ? undefined : color,
+          }}
         >
           {isLoading ? (
             <>
@@ -88,9 +86,6 @@ export function JDMatchModal() {
             </>
           )}
         </button>
-        <p className="text-xs text-gray-400 mt-4 text-center">
-          Analysis happens locally for maximum privacy.
-        </p>
       </div>
     </div>
   );

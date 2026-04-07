@@ -20,7 +20,6 @@ import {
   TrendingUp,
   Zap,
 } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
 import { ATSModal } from "@/components/landing/modals/ats-modal";
@@ -117,10 +116,11 @@ export function LandingPage() {
   ];
 
   const objectives = [
-    "Parse resume data to extract relevant information",
-    "Predict student performance with ML models",
-    "Identify skills gaps and recommend improvements",
-    "Provide actionable career suggestions",
+    "Upload your resume securely to our privacy-first platform.",
+    "Select from 5 specialized AI-powered career tools.",
+    "Process your data instantly against industry standards.",
+    "Get comprehensive scores and actionable gap analyses.",
+    "Apply personalized suggestions to boost your hiring chances.",
   ];
 
   const tools = [
@@ -129,7 +129,7 @@ export function LandingPage() {
       icon: TrendingUp,
       title: "Placement Prediction",
       description:
-        "Get ML-powered placement probability with detailed analysis and personalized suggestions",
+        "Get placement probability with detailed analysis and personalized suggestions",
       color: "#1360fa",
       badge: "ML Powered",
       recommended: true,
@@ -138,7 +138,7 @@ export function LandingPage() {
     {
       href: "/jd-matching",
       icon: FileSearch,
-      title: "Job Description Matching",
+      title: "Job Description Match",
       description:
         "Upload a job description & resume to compute match score and identify gaps",
       color: "#06b6d4",
@@ -235,14 +235,15 @@ export function LandingPage() {
               personalized improvement suggestions.
             </p>
             <div className="flex flex-row gap-2 sm:gap-3 justify-center">
-              <Link
-                href="/prediction"
-                className="group inline-flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-3 sm:py-3.5 bg-[#1360fa] text-white rounded-full text-sm sm:text-base font-medium shadow-lg shadow-[#1360fa]/25 hover:bg-[#5c35e6] hover:shadow-xl hover:shadow-[#1360fa]/30 transition-all duration-200"
+              <button
+                type="button"
+                onClick={() => setSelectedTool(tools[0])}
+                className="group inline-flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-3 sm:py-3.5 bg-[#1360fa] text-white rounded-full text-sm sm:text-base font-medium shadow-lg shadow-[#1360fa]/25 hover:bg-[#0d4fd4] hover:shadow-xl hover:shadow-[#1360fa]/30 transition-all duration-200"
               >
                 <TrendingUp className="w-4 h-4" />
                 Get Prediction
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
+              </button>
               <a
                 href="#tools"
                 className="group inline-flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-3 sm:py-3.5 bg-gray-100 text-gray-700 rounded-full text-sm sm:text-base font-medium border border-gray-300 hover:border-gray-400 hover:bg-gray-200 transition-all duration-200"
@@ -426,25 +427,25 @@ export function LandingPage() {
             <div className="bg-white rounded-xl sm:rounded-2xl p-5 sm:p-8 border border-gray-200 shadow-xl shadow-gray-100/50 h-full">
               <div className="flex items-center gap-2 mb-4 sm:mb-6">
                 <Shield className="w-5 h-5 text-[#1360fa]" />
-                <h3 className="font-semibold text-gray-900">What We Analyze</h3>
+                <h3 className="font-bold text-gray-900">What We Analyze</h3>
               </div>
               <div className="grid grid-cols-2 gap-2 sm:gap-3">
                 {[
-                  "CGPA & Academics",
-                  "Technical Skills",
-                  "Projects Count",
-                  "Internships",
-                  "Certifications",
-                  "Hackathons",
-                  "Communication",
-                  "ATS Score",
+                  "ML Placement Probability",
+                  "ATS Parsing Compatibility",
+                  "JD Keyword Coverage",
+                  "Missing Skills Analysis",
+                  "Project Complexity Rating",
+                  "Resume A/B Comparison",
+                  "Actionable Improvement Tips",
+                  "Recruiter Impact Scoring",
                 ].map((item) => (
                   <div
                     key={item}
-                    className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 py-1.5 sm:py-2 px-2 sm:px-3 bg-gray-50 rounded-lg"
+                    className="flex items-center gap-1.5 text-[10px] lg:text-[11px] xl:text-xs text-gray-600 py-1.5 sm:py-2 px-1.5 sm:px-2 bg-gray-50 rounded-lg"
                   >
                     <div className="w-1.5 h-1.5 rounded-full bg-[#1360fa] flex-shrink-0" />
-                    <span className="truncate">{item}</span>
+                    <span className="truncate tracking-tight">{item}</span>
                   </div>
                 ))}
               </div>
@@ -458,51 +459,46 @@ export function LandingPage() {
 
       {/* Tool Info Modal */}
       {selectedTool && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity">
-          <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-            <div className="relative p-6 sm:p-8 border-b border-gray-100">
-              <button
-                type="button"
-                onClick={() => setSelectedTool(null)}
-                className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 rounded-full transition-colors"
-                aria-label="Close"
-              >
-                ✕
-              </button>
-              <div className="flex items-center gap-4 mb-4">
-                <div
-                  className="w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: `${selectedTool.color}25` }}
-                >
-                  <selectedTool.icon
-                    className="w-8 h-8"
-                    style={{ color: selectedTool.color }}
-                  />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="text-2xl font-bold text-gray-900">
-                      {selectedTool.title}
-                    </h2>
-                    {selectedTool.badge && (
-                      <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-gray-100 text-gray-600">
-                        {selectedTool.badge}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-gray-500 mt-1 line-clamp-2">
-                    {selectedTool.description}
-                  </p>
-                </div>
-              </div>
-            </div>
+        // biome-ignore lint/a11y/useSemanticElements: Backdrop needs to be a div but also needs to be clickable
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSelectedTool(null);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape" || e.key === "Enter" || e.key === " ") {
+              if (e.target === e.currentTarget) setSelectedTool(null);
+            }
+          }}
+          role="button"
+          tabIndex={0}
+        >
+          <div className="relative bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl">
+            <button
+              type="button"
+              onClick={() => setSelectedTool(null)}
+              className="absolute top-4 right-4 z-10 p-2 text-gray-400 hover:text-gray-900 bg-gray-50 hover:bg-gray-100 rounded-full transition-colors"
+              aria-label="Close"
+            >
+              ✕
+            </button>
 
-            <div className="p-6 sm:p-8 bg-gray-50/50">
-              {selectedTool.href === "/prediction" && <PredictionModal />}
-              {selectedTool.href === "/jd-matching" && <JDMatchModal />}
-              {selectedTool.href === "/ats-score" && <ATSModal />}
-              {selectedTool.href === "/project-assessment" && <ProjectModal />}
-              {selectedTool.href === "/resume-comparison" && <CompareModal />}
+            <div className="pt-12 px-6 pb-6 sm:px-8 sm:pb-8">
+              {selectedTool.href === "/prediction" && (
+                <PredictionModal color={selectedTool.color} />
+              )}
+              {selectedTool.href === "/jd-matching" && (
+                <JDMatchModal color={selectedTool.color} />
+              )}
+              {selectedTool.href === "/ats-score" && (
+                <ATSModal color={selectedTool.color} />
+              )}
+              {selectedTool.href === "/project-assessment" && (
+                <ProjectModal color={selectedTool.color} />
+              )}
+              {selectedTool.href === "/resume-comparison" && (
+                <CompareModal color={selectedTool.color} />
+              )}
             </div>
           </div>
         </div>
