@@ -24,7 +24,13 @@ PROJECT NAME: ${projectName || "Not specified"}
 PROJECT DESCRIPTION: ${projectDescription}
 TECH STACK: ${techStack || "Not specified"}
 
-Analyze and return a JSON object with EXACTLY this structure (no markdown, no code blocks, just raw JSON):
+First, determine if the provided project details are valid.
+If the project description contains gibberish, random characters, completely unrelated text, or does not logically describe a software project, return EXACTLY the following JSON object (and nothing else):
+{
+  "error": "Enter valid details about project"
+}
+
+Otherwise, analyze and return a JSON object with EXACTLY this structure (no markdown, no code blocks, just raw JSON):
 {
   "score": <number 1-10>,
   "complexityRating": "Low|Medium|High|Very High",
@@ -36,6 +42,7 @@ Analyze and return a JSON object with EXACTLY this structure (no markdown, no co
 }
 
 Rules:
+- Validate that the project details are genuine before analyzing.
 - Score 1-10 based on complexity, relevance to SDE roles, and impressiveness
 - skillsCovered: list all technical skills this project demonstrates (programming languages, frameworks, concepts like REST APIs, authentication, etc.)
 - strengths: 3-5 things that are impressive about this project
@@ -49,6 +56,10 @@ Rules:
     try {
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       parsed = JSON.parse(jsonMatch?.[0] || responseText);
+
+      if (parsed.error && typeof parsed.error === "string") {
+        return NextResponse.json({ error: parsed.error }, { status: 400 });
+      }
     } catch {
       parsed = {
         score: 5,

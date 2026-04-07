@@ -1,6 +1,6 @@
 "use client";
 
-import { FolderKanban, Loader2 } from "lucide-react";
+import { AlertCircle, FolderKanban, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 
@@ -9,11 +9,13 @@ export function ProjectModal({ color = "#f59e0b" }: { color?: string }) {
   const [projectDescription, setProjectDescription] = useState("");
   const [techStack, setTechStack] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const router = useRouter();
 
   const handleAnalyze = useCallback(async () => {
     if (!projectDescription.trim()) return;
     setIsLoading(true);
+    setErrorMsg(null);
 
     try {
       const response = await fetch("/api/project-assessment", {
@@ -30,10 +32,18 @@ export function ProjectModal({ color = "#f59e0b" }: { color?: string }) {
         sessionStorage.setItem("projectSettings", JSON.stringify(payload));
         router.push("/project-assessment");
       } else {
-        alert("Assessment failed. Please try again.");
+        const errText = await response.text();
+        let errMsg = errText;
+        try {
+          const errData = JSON.parse(errText);
+          errMsg = errData.error || errText;
+        } catch {
+          // ignore
+        }
+        setErrorMsg(errMsg);
       }
     } catch {
-      alert("Failed to assess. Please try again.");
+      setErrorMsg("Failed to assess. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -55,7 +65,10 @@ export function ProjectModal({ color = "#f59e0b" }: { color?: string }) {
             id="project-name"
             type="text"
             value={projectName}
-            onChange={(e) => setProjectName(e.target.value)}
+            onChange={(e) => {
+              setProjectName(e.target.value);
+              setErrorMsg(null);
+            }}
             className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-gray-300 focus:ring-2 focus:ring-gray-100 transition-all"
             placeholder="e.g., Real-time Chat Application"
           />
@@ -70,7 +83,10 @@ export function ProjectModal({ color = "#f59e0b" }: { color?: string }) {
           <textarea
             id="project-description"
             value={projectDescription}
-            onChange={(e) => setProjectDescription(e.target.value)}
+            onChange={(e) => {
+              setProjectDescription(e.target.value);
+              setErrorMsg(null);
+            }}
             placeholder="Describe what the project does, features implemented, architecture, challenges solved..."
             rows={5}
             className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-gray-300 focus:ring-2 focus:ring-gray-100 resize-none transition-all"
@@ -87,7 +103,10 @@ export function ProjectModal({ color = "#f59e0b" }: { color?: string }) {
             id="tech-stack"
             type="text"
             value={techStack}
-            onChange={(e) => setTechStack(e.target.value)}
+            onChange={(e) => {
+              setTechStack(e.target.value);
+              setErrorMsg(null);
+            }}
             className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-gray-300 focus:ring-2 focus:ring-gray-100 transition-all"
             placeholder="e.g., React, Node.js, MongoDB, Docker"
           />
@@ -95,6 +114,12 @@ export function ProjectModal({ color = "#f59e0b" }: { color?: string }) {
       </div>
 
       <div className="mt-8 flex flex-col items-center">
+        {errorMsg && (
+          <div className="w-full max-w-md mb-4 px-4 py-3 bg-red-50 text-red-600 rounded-lg text-sm flex items-start gap-2 border border-red-100 shadow-sm animate-in fade-in slide-in-from-bottom-2">
+            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <span className="leading-relaxed">{errorMsg}</span>
+          </div>
+        )}
         <button
           type="button"
           onClick={handleAnalyze}
