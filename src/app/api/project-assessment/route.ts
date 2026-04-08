@@ -1,8 +1,5 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { type NextRequest, NextResponse } from "next/server";
-import { generateWithFallback } from "@/lib/ml/gemini";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+import { generateWithFallback, getGenAI } from "@/lib/ml/gemini";
 
 export async function POST(request: NextRequest) {
   try {
@@ -50,7 +47,7 @@ Rules:
 - recruiterTips: 3-5 ways to present/describe this project to impress recruiters
 - Be realistic but constructive in scoring`;
 
-    const responseText = await generateWithFallback(genAI, [prompt]);
+    const responseText = await generateWithFallback(getGenAI(), [prompt]);
 
     let parsed: Record<string, unknown>;
     try {

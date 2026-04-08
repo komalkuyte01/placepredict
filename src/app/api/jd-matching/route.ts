@@ -1,8 +1,6 @@
-import { GoogleGenerativeAI, type Part } from "@google/generative-ai";
+import type { Part } from "@google/generative-ai";
 import { type NextRequest, NextResponse } from "next/server";
-import { generateWithFallback } from "@/lib/ml/gemini";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+import { generateWithFallback, getGenAI } from "@/lib/ml/gemini";
 
 export async function POST(request: NextRequest) {
   try {
@@ -84,7 +82,7 @@ Rules:
 
     promptParts.push(instructions);
 
-    const responseText = await generateWithFallback(genAI, promptParts);
+    const responseText = await generateWithFallback(getGenAI(), promptParts);
 
     // Parse JSON from response
     let parsed: Record<string, unknown>;

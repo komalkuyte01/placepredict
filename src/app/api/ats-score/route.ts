@@ -1,8 +1,6 @@
-import { GoogleGenerativeAI, type Part } from "@google/generative-ai";
+import type { Part } from "@google/generative-ai";
 import { type NextRequest, NextResponse } from "next/server";
-import { generateWithFallback } from "@/lib/ml/gemini";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+import { generateWithFallback, getGenAI } from "@/lib/ml/gemini";
 
 export async function POST(request: NextRequest) {
   try {
@@ -57,7 +55,7 @@ Rules:
 - suggestions: list 4-6 specific, actionable improvements
 - breakdown scores should sum to the total ATS score`;
 
-    const responseText = await generateWithFallback(genAI, [
+    const responseText = await generateWithFallback(getGenAI(), [
       promptText,
       resumeFilePart,
     ]);

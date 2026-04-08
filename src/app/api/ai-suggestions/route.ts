@@ -1,11 +1,9 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
+import { getGenAI } from "@/lib/ml/gemini";
 import type {
   CandidateProfile,
   PlacementPrediction,
 } from "@/lib/types/placement";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 interface AISuggestionsRequest {
   profile: CandidateProfile;
@@ -28,7 +26,8 @@ const MODEL_NAMES = [
 async function tryWithModels(prompt: string): Promise<string | null> {
   for (const modelName of MODEL_NAMES) {
     try {
-      const model = genAI.getGenerativeModel({ model: modelName });
+      const ai = getGenAI();
+      const model = ai.getGenerativeModel({ model: modelName });
       const result = await model.generateContent(prompt);
       const response = result.response;
       return response.text();

@@ -1,7 +1,5 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+import { getGenAI } from "@/lib/ml/gemini";
 
 interface RelevanceCheckRequest {
   skills: string[];
@@ -338,7 +336,8 @@ If all items are legitimate and relevant, respond with:
     // Try each model until one works
     for (const modelName of GEMINI_MODELS) {
       try {
-        const model = genAI.getGenerativeModel({ model: modelName });
+        const ai = getGenAI();
+        const model = ai.getGenerativeModel({ model: modelName });
 
         const result = await model.generateContent(prompt);
         const response = result.response;

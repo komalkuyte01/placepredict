@@ -1,5 +1,6 @@
-import { GoogleGenerativeAI, type Part } from "@google/generative-ai";
+import type { Part } from "@google/generative-ai";
 import { type NextRequest, NextResponse } from "next/server";
+import { getGenAI } from "@/lib/ml/gemini";
 
 // Force dynamic rendering
 export const dynamic = "force-dynamic";
@@ -97,7 +98,6 @@ const MAX_PDF_SIZE = 4 * 1024 * 1024;
  * Gemini can "see" the visual layout, handling two-column and complex formats correctly.
  */
 async function parseResumeWithGemini(
-  genAI: GoogleGenerativeAI,
   fileBuffer: Buffer,
 ): Promise<ParsedResumeData> {
   let lastError: Error | null = null;
@@ -111,6 +111,7 @@ async function parseResumeWithGemini(
 
   for (const modelName of GEMINI_MODELS) {
     try {
+      const genAI = getGenAI();
       const model = genAI.getGenerativeModel({ model: modelName });
       const result = await model.generateContent([
         RESUME_PARSE_PROMPT,
@@ -158,20 +159,18 @@ class ValidationError extends Error {
 
 export async function POST(request: NextRequest) {
   try {
-    // Check API key
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey || apiKey === "your_api_key_here") {
+    // Verify at least one API key is available
+    try {
+      getGenAI();
+    } catch {
       return NextResponse.json({
         success: false,
         extractedData: {},
         confidence: 0,
         missingFields: ["API key not configured"],
-        warnings: ["Please add your Gemini API key to .env.local file"],
+        warnings: ["Please add your Gemini API keys to .env.local file"],
       });
     }
-
-    // Initialize Gemini
-    const genAI = new GoogleGenerativeAI(apiKey);
 
     const formData = await request.formData();
     const file = formData.get("file") as File;
@@ -227,7 +226,7 @@ export async function POST(request: NextRequest) {
     // Parse resume with Gemini AI (PDF sent directly — no pdf-parse needed)
     let parsedData: ParsedResumeData;
     try {
-      parsedData = await parseResumeWithGemini(genAI, buffer);
+      parsedData = await parseResumeWithGemini(buffer);
     } catch (error) {
       // Validation errors get a clean 400 response
       if (error instanceof ValidationError) {
