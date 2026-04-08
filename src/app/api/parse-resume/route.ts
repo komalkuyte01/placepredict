@@ -36,7 +36,23 @@ interface ParsedResumeData {
   };
 }
 
-const RESUME_PARSE_PROMPT = `Extract structured data from this resume. Return ONLY a JSON object, no markdown.
+const RESUME_PARSE_PROMPT = `You are an expert resume parser. Analyze the provided PDF document.
+
+STEP 1 — VALIDATION:
+First, determine if this document is a valid, genuine professional resume or CV.
+If the document is ANY of the following, return EXACTLY this JSON and nothing else:
+{
+  "error": "Please upload a valid resume document."
+}
+- A certificate, diploma, or award
+- An academic transcript without resume sections
+- An invoice, letter, or unrelated business document
+- A blank or nearly-blank document
+- Garbage data, gibberish, or random content
+- Any document that does not contain standard resume sections (e.g. contact info, education, experience, skills, projects)
+
+STEP 2 — EXTRACTION (only if the document IS a valid resume):
+Extract structured data and return ONLY a JSON object, no markdown.
 
 Schema (use null if not found, [] for empty arrays):
 {
@@ -64,34 +80,8 @@ Schema (use null if not found, [] for empty arrays):
 DSA mapping: None=no mention, Basic=arrays/sorting, Intermediate=trees/graphs/DP, Advanced=competitive programming/hard problems.
 ATS score: keyword density, section structure, parsability, quantified achievements. Most=40-70, well-optimized=75-85.
 Capitalize properly: "JavaScript", "React", "AWS", "Docker".
-
-Resume:
 `;
 
-/**
- * Extract text from PDF buffer using pdf-parse v2
- */
-async function extractTextFromPDF(buffer: Buffer): Promise<string> {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { PDFParse } = require("pdf-parse");
-    const parser = new PDFParse({ data: buffer });
-    await parser.load();
-    const result = await parser.getText();
-    await parser.destroy();
-    return result.text || "";
-  } catch (error) {
-    console.error("PDF parse error:", error);
-    throw new Error(
-      "Failed to extract text from PDF. Please ensure the file is a valid PDF with text content.",
-    );
-  }
-}
-
-/**
- * Available Gemini model names to try (in order of preference)
- * Each model has separate quota limits
- */
 /** Gemini models to try, in order of preference. Falls back to lower models on quota errors. */
 const GEMINI_MODELS = [
   "gemini-3-flash",
@@ -99,59 +89,35 @@ const GEMINI_MODELS = [
   "gemini-2.5-flash-lite",
 ];
 
+/** Maximum PDF size for Gemini inline data (4 MB) */
+const MAX_PDF_SIZE = 4 * 1024 * 1024;
+
 /**
- * Parse resume using Gemini AI with the PDF sent directly as file
+ * Parse resume by sending the PDF directly to Gemini as inline data.
+ * Gemini can "see" the visual layout, handling two-column and complex formats correctly.
  */
 async function parseResumeWithGemini(
   genAI: GoogleGenerativeAI,
   fileBuffer: Buffer,
-  mimeType: string,
-  extractedText?: string,
 ): Promise<ParsedResumeData> {
   let lastError: Error | null = null;
 
-  // Try each model until one works
+  const filePart: Part = {
+    inlineData: {
+      data: fileBuffer.toString("base64"),
+      mimeType: "application/pdf",
+    },
+  };
+
   for (const modelName of GEMINI_MODELS) {
     try {
       const model = genAI.getGenerativeModel({ model: modelName });
-      let result: Awaited<ReturnType<typeof model.generateContent>> | undefined;
+      const result = await model.generateContent([
+        RESUME_PARSE_PROMPT,
+        filePart,
+      ]);
 
-      // Try with inline data first (for PDFs), fall back to text
-      if (
-        mimeType === "application/pdf" &&
-        fileBuffer.length < 4 * 1024 * 1024
-      ) {
-        // Send PDF directly to Gemini (under 4MB limit for inline)
-        const filePart: Part = {
-          inlineData: {
-            data: fileBuffer.toString("base64"),
-            mimeType: "application/pdf",
-          },
-        };
-
-        try {
-          result = await model.generateContent([RESUME_PARSE_PROMPT, filePart]);
-        } catch {
-          // If direct PDF fails, fall back to extracted text
-          if (extractedText) {
-            result = await model.generateContent(
-              RESUME_PARSE_PROMPT + extractedText,
-            );
-          } else {
-            throw new Error("Could not process PDF");
-          }
-        }
-      } else if (extractedText) {
-        // Use extracted text for large files or non-PDFs
-        result = await model.generateContent(
-          RESUME_PARSE_PROMPT + extractedText,
-        );
-      } else {
-        throw new Error("No content to process");
-      }
-
-      const response = result.response;
-      const responseText = response.text();
+      const responseText = result.response.text();
 
       // Clean up the response - remove markdown code blocks and trim
       let cleanedResponse = responseText
@@ -165,13 +131,29 @@ async function parseResumeWithGemini(
         cleanedResponse = jsonMatch[0];
       }
 
-      return JSON.parse(cleanedResponse);
+      const parsed = JSON.parse(cleanedResponse);
+
+      // Check if Gemini flagged this as an invalid document
+      if (parsed.error && typeof parsed.error === "string") {
+        throw new ValidationError(parsed.error);
+      }
+
+      return parsed;
     } catch (error) {
+      if (error instanceof ValidationError) throw error;
       lastError = error instanceof Error ? error : new Error(String(error));
     }
   }
 
   throw lastError || new Error("All Gemini models failed");
+}
+
+/** Custom error class for document validation failures */
+class ValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ValidationError";
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -204,44 +186,61 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const mimeType = file.type || "application/pdf";
-
-    // Try to extract text from PDF for fallback
-    let extractedText: string | undefined;
-    try {
-      extractedText = await extractTextFromPDF(buffer);
-    } catch {
-      // Text extraction failed — will try sending PDF directly to Gemini
-    }
-
-    // If no text and file is small, we can still try direct PDF
-    if (
-      (!extractedText || extractedText.trim().length < 50) &&
-      buffer.length > 4 * 1024 * 1024
-    ) {
+    // Validate file type
+    if (file.type && file.type !== "application/pdf") {
       return NextResponse.json({
         success: false,
         extractedData: {},
         confidence: 0,
-        missingFields: ["Unable to extract text from PDF"],
+        missingFields: [],
+        warnings: ["Please upload a PDF file."],
+      });
+    }
+
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Check file size (Gemini inline limit is 4MB)
+    if (buffer.length > MAX_PDF_SIZE) {
+      return NextResponse.json({
+        success: false,
+        extractedData: {},
+        confidence: 0,
+        missingFields: [],
+        warnings: ["File is too large. Please upload a PDF smaller than 4 MB."],
+      });
+    }
+
+    // Check for essentially empty files
+    if (buffer.length < 100) {
+      return NextResponse.json({
+        success: false,
+        extractedData: {},
+        confidence: 0,
+        missingFields: [],
         warnings: [
-          "Please ensure the PDF contains readable text, not scanned images",
+          "The uploaded file appears to be empty or corrupted. Please upload a valid resume PDF.",
         ],
       });
     }
 
-    // Parse resume with Gemini AI
+    // Parse resume with Gemini AI (PDF sent directly — no pdf-parse needed)
     let parsedData: ParsedResumeData;
     try {
-      parsedData = await parseResumeWithGemini(
-        genAI,
-        buffer,
-        mimeType,
-        extractedText,
-      );
+      parsedData = await parseResumeWithGemini(genAI, buffer);
     } catch (error) {
+      // Validation errors get a clean 400 response
+      if (error instanceof ValidationError) {
+        return NextResponse.json({
+          success: false,
+          extractedData: {},
+          confidence: 0,
+          missingFields: [],
+          warnings: [error.message],
+          validationError: error.message,
+        });
+      }
+
       console.error("Gemini parsing error:", error);
       return NextResponse.json({
         success: false,

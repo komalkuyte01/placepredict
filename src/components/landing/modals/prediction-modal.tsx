@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2, PenLine, Upload } from "lucide-react";
+import { AlertCircle, Loader2, PenLine, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCallback, useRef, useState } from "react";
 import { createEmptyProfile } from "@/lib/ml/default-profile";
@@ -11,6 +11,7 @@ import type {
 
 export function PredictionModal({ color = "#1360fa" }: { color?: string }) {
   const [isUploading, setIsUploading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
@@ -33,11 +34,12 @@ export function PredictionModal({ color = "#1360fa" }: { color?: string }) {
       e.target.value = "";
 
       if (file.type !== "application/pdf") {
-        alert("Please select a PDF file");
+        setErrorMsg("Please select a PDF file.");
         return;
       }
 
       setIsUploading(true);
+      setErrorMsg(null);
 
       try {
         const formData = new FormData();
@@ -50,13 +52,26 @@ export function PredictionModal({ color = "#1360fa" }: { color?: string }) {
 
         if (!response.ok) {
           const errorText = await response.text();
-          alert(
-            `Resume parsing failed (HTTP ${response.status}):\n${errorText}`,
-          );
+          let msg = "Resume parsing failed. Please try again.";
+          try {
+            const errData = JSON.parse(errorText);
+            msg = errData.error || errData.message || msg;
+          } catch {
+            // use default msg
+          }
+          setErrorMsg(msg);
           return;
         }
 
-        const result: ResumeParseResult = await response.json();
+        const result: ResumeParseResult & {
+          validationError?: string;
+        } = await response.json();
+
+        // Check for validation error (non-resume document)
+        if (result.validationError) {
+          setErrorMsg(result.validationError);
+          return;
+        }
 
         if (result.success && result.extractedData) {
           const baseProfile = createEmptyProfile();
@@ -139,13 +154,16 @@ export function PredictionModal({ color = "#1360fa" }: { color?: string }) {
         } else {
           const warnings = result.warnings?.join("\n") || "";
           const missing = result.missingFields?.join(", ") || "";
-          alert(
-            `Resume parsing failed.\n\n${warnings ? `Reason: ${warnings}\n` : ""}${missing ? `Missing: ${missing}` : ""}`,
+          setErrorMsg(
+            warnings ||
+              (missing
+                ? `Missing fields: ${missing}`
+                : "Resume parsing failed. Please try again."),
           );
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        alert(`Resume parsing error:\n${message}`);
+        setErrorMsg(`Resume parsing error: ${message}`);
       } finally {
         setIsUploading(false);
       }
@@ -163,6 +181,13 @@ export function PredictionModal({ color = "#1360fa" }: { color?: string }) {
         className="hidden"
       />
 
+      {errorMsg && (
+        <div className="w-full px-4 py-3 bg-red-50 text-red-600 rounded-lg text-sm flex items-start gap-2 border border-red-100 shadow-sm animate-in fade-in slide-in-from-bottom-2">
+          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+          <span className="leading-relaxed">{errorMsg}</span>
+        </div>
+      )}
+
       {isUploading ? (
         <div className="flex flex-col items-center justify-center p-12 space-y-4">
           <Loader2 className="w-8 h-8 animate-spin" style={{ color }} />
@@ -179,7 +204,10 @@ export function PredictionModal({ color = "#1360fa" }: { color?: string }) {
         <div className="grid sm:grid-cols-2 gap-4">
           <button
             type="button"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => {
+              setErrorMsg(null);
+              fileInputRef.current?.click();
+            }}
             className="group p-6 bg-white rounded-xl border border-gray-200 hover:shadow-lg transition-all duration-300 text-left"
           >
             <div
