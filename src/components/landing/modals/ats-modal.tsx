@@ -58,9 +58,9 @@ export function ATSModal({ color = "#10b981" }: { color?: string }) {
 
       <div className="mt-8 flex flex-col items-center">
         {errorMsg && (
-          <div className="w-full max-w-md mb-4 px-4 py-3 bg-red-50 text-red-600 rounded-lg text-sm flex items-start gap-2 border border-red-100 shadow-sm animate-in fade-in slide-in-from-bottom-2">
-            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-            <span className="leading-relaxed">{errorMsg}</span>
+          <div className="w-full max-w-md mb-4 text-red-600 text-sm flex items-center justify-center gap-2 animate-in fade-in slide-in-from-bottom-2">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <span>{errorMsg}</span>
           </div>
         )}
         <button
