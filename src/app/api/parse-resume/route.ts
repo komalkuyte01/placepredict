@@ -1,6 +1,6 @@
 import type { Part } from "@google/generative-ai";
 import { type NextRequest, NextResponse } from "next/server";
-import { getGenAI } from "@/lib/ml/gemini";
+import { generateWithFallback } from "@/lib/ml/gemini";
 
 // Force dynamic rendering
 export const dynamic = "force-dynamic";
@@ -83,71 +83,8 @@ ATS score: keyword density, section structure, parsability, quantified achieveme
 Capitalize properly: "JavaScript", "React", "AWS", "Docker".
 `;
 
-/** Gemini models to try, in order of preference. Falls back to lower models on quota errors. */
-const GEMINI_MODELS = [
-  "gemini-3-flash",
-  "gemini-2.5-flash",
-  "gemini-2.5-flash-lite",
-];
-
 /** Maximum PDF size for Gemini inline data (4 MB) */
 const MAX_PDF_SIZE = 4 * 1024 * 1024;
-
-/**
- * Parse resume by sending the PDF directly to Gemini as inline data.
- * Gemini can "see" the visual layout, handling two-column and complex formats correctly.
- */
-async function parseResumeWithGemini(
-  fileBuffer: Buffer,
-): Promise<ParsedResumeData> {
-  let lastError: Error | null = null;
-
-  const filePart: Part = {
-    inlineData: {
-      data: fileBuffer.toString("base64"),
-      mimeType: "application/pdf",
-    },
-  };
-
-  for (const modelName of GEMINI_MODELS) {
-    try {
-      const genAI = getGenAI();
-      const model = genAI.getGenerativeModel({ model: modelName });
-      const result = await model.generateContent([
-        RESUME_PARSE_PROMPT,
-        filePart,
-      ]);
-
-      const responseText = result.response.text();
-
-      // Clean up the response - remove markdown code blocks and trim
-      let cleanedResponse = responseText
-        .replace(/```json\s*/gi, "")
-        .replace(/```\s*/g, "")
-        .trim();
-
-      // Try to find JSON object in the response
-      const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        cleanedResponse = jsonMatch[0];
-      }
-
-      const parsed = JSON.parse(cleanedResponse);
-
-      // Check if Gemini flagged this as an invalid document
-      if (parsed.error && typeof parsed.error === "string") {
-        throw new ValidationError(parsed.error);
-      }
-
-      return parsed;
-    } catch (error) {
-      if (error instanceof ValidationError) throw error;
-      lastError = error instanceof Error ? error : new Error(String(error));
-    }
-  }
-
-  throw lastError || new Error("All Gemini models failed");
-}
 
 /** Custom error class for document validation failures */
 class ValidationError extends Error {
@@ -157,21 +94,49 @@ class ValidationError extends Error {
   }
 }
 
+/**
+ * Parse resume by sending the PDF directly to Gemini as inline data.
+ * Uses the centralized generateWithFallback for key rotation + model fallback.
+ */
+async function parseResumeWithGemini(
+  fileBuffer: Buffer,
+): Promise<ParsedResumeData> {
+  const filePart: Part = {
+    inlineData: {
+      data: fileBuffer.toString("base64"),
+      mimeType: "application/pdf",
+    },
+  };
+
+  const responseText = await generateWithFallback([
+    RESUME_PARSE_PROMPT,
+    filePart,
+  ]);
+
+  // Clean up the response - remove markdown code blocks and trim
+  let cleanedResponse = responseText
+    .replace(/```json\s*/gi, "")
+    .replace(/```\s*/g, "")
+    .trim();
+
+  // Try to find JSON object in the response
+  const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    cleanedResponse = jsonMatch[0];
+  }
+
+  const parsed = JSON.parse(cleanedResponse);
+
+  // Check if Gemini flagged this as an invalid document
+  if (parsed.error && typeof parsed.error === "string") {
+    throw new ValidationError(parsed.error);
+  }
+
+  return parsed;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    // Verify at least one API key is available
-    try {
-      getGenAI();
-    } catch {
-      return NextResponse.json({
-        success: false,
-        extractedData: {},
-        confidence: 0,
-        missingFields: ["API key not configured"],
-        warnings: ["Please add your Gemini API keys to .env.local file"],
-      });
-    }
-
     const formData = await request.formData();
     const file = formData.get("file") as File;
 

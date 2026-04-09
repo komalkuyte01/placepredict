@@ -1,15 +1,15 @@
 import { GoogleGenerativeAI, type Part } from "@google/generative-ai";
 
 // ---------------------------------------------------------------------------
-// API Key Pool — rotates across up to 8 keys when quota is exhausted
+// API Key Pool — rotates across up to 20 keys when quota is exhausted
 // ---------------------------------------------------------------------------
 
 /** Collect all configured API keys from environment variables. */
 function loadApiKeys(): string[] {
   const keys: string[] = [];
 
-  // Support GEMINI_API_KEY_1 through GEMINI_API_KEY_8
-  for (let i = 1; i <= 8; i++) {
+  // Support GEMINI_API_KEY_1 through GEMINI_API_KEY_20
+  for (let i = 1; i <= 20; i++) {
     const key = process.env[`GEMINI_API_KEY_${i}`];
     if (key && key !== "your_api_key_here") {
       keys.push(key);
@@ -25,27 +25,6 @@ function loadApiKeys(): string[] {
   }
 
   return keys;
-}
-
-/** Round-robin index — persists across calls within the same server process. */
-let currentKeyIndex = 0;
-
-/** Get the next API key in the pool (round-robin). */
-function getNextKey(keys: string[]): string {
-  const key = keys[currentKeyIndex % keys.length];
-  currentKeyIndex = (currentKeyIndex + 1) % keys.length;
-  return key;
-}
-
-/** Create a GoogleGenerativeAI instance using the next available key. */
-export function getGenAI(): GoogleGenerativeAI {
-  const keys = loadApiKeys();
-  if (keys.length === 0) {
-    throw new Error(
-      "No Gemini API keys configured. Add GEMINI_API_KEY or GEMINI_API_KEY_1..8 to your environment.",
-    );
-  }
-  return new GoogleGenerativeAI(getNextKey(keys));
 }
 
 /** Check whether the error is a quota / rate-limit error. */
@@ -64,7 +43,7 @@ function isQuotaError(err: Error): boolean {
 // Model fallback with key rotation
 // ---------------------------------------------------------------------------
 
-/** Models to try in order. Different models often have separate free-tier quota limits. */
+/** Models to try in order of preference. */
 const FALLBACK_MODELS = [
   "gemini-2.5-flash",
   "gemini-2.5-flash-lite",
@@ -72,51 +51,59 @@ const FALLBACK_MODELS = [
   "gemini-3.1-flash-lite",
 ];
 
+/** Round-robin index — persists across calls within the same server process. */
+let currentKeyIndex = 0;
+
 /**
- * Generate content with automatic model fallback AND key rotation.
+ * Generate content with automatic key rotation AND model fallback.
  *
- * Strategy: for each model, try every available API key before moving
- * to the next model. This maximises the chance of a successful response.
+ * Strategy: for each API key, try ALL models before moving to the next key.
+ * This maximises usage of each key's quota across different model tiers.
+ *
+ * - Quota / rate-limit error  → skip to NEXT KEY (current key is exhausted)
+ * - Non-quota error (e.g. model not found) → try NEXT MODEL (same key)
  */
 export async function generateWithFallback(
-  _genAI: GoogleGenerativeAI | null,
   promptParts: (string | Part)[],
 ): Promise<string> {
   const keys = loadApiKeys();
   if (keys.length === 0) {
     throw new Error(
-      "No Gemini API keys configured. Add GEMINI_API_KEY or GEMINI_API_KEY_1..8 to your environment.",
+      "No Gemini API keys configured. Add GEMINI_API_KEY or GEMINI_API_KEY_1..20 to your environment.",
     );
   }
 
   let lastError: Error | null = null;
 
-  for (const modelName of FALLBACK_MODELS) {
-    // Try each key for this model
-    for (let k = 0; k < keys.length; k++) {
-      const key = getNextKey(keys);
+  for (let k = 0; k < keys.length; k++) {
+    const keyIdx = (currentKeyIndex + k) % keys.length;
+    const key = keys[keyIdx];
+
+    for (const modelName of FALLBACK_MODELS) {
       try {
         const ai = new GoogleGenerativeAI(key);
         const model = ai.getGenerativeModel({ model: modelName });
         const result = await model.generateContent(promptParts);
+        // Success — advance the round-robin index for next call
+        currentKeyIndex = (keyIdx + 1) % keys.length;
         return result.response.text();
       } catch (error: unknown) {
         const err = error instanceof Error ? error : new Error(String(error));
         lastError = err;
 
         if (isQuotaError(err)) {
+          // This key is exhausted — skip to next key immediately
           console.warn(
-            `[Gemini] Key ...${key.slice(-6)} hit quota on ${modelName}, rotating...`,
+            `[Gemini] Key ...${key.slice(-6)} hit quota on ${modelName}, switching to next key...`,
           );
-          continue; // try next key
+          break; // break inner model loop → move to next key
         }
 
-        // Non-quota error — skip to next model
+        // Non-quota error (model unavailable, etc.) — try next model with same key
         console.warn(
-          `[Gemini] Model ${modelName} failed (non-quota):`,
+          `[Gemini] Model ${modelName} failed with key ...${key.slice(-6)} (non-quota):`,
           err.message,
         );
-        break;
       }
     }
   }

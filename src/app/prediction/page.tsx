@@ -92,6 +92,7 @@ export default function PredictionPage() {
 
     setIsLoading(false);
     setView("results");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }, [profile]);
 
   const handleReset = useCallback(() => {

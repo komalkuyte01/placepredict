@@ -29,7 +29,14 @@ export function CompareModal({ color = "#ec4899" }: { color?: string }) {
 
       if (response.ok) {
         const data = await response.json();
-        sessionStorage.setItem("compareSettings", JSON.stringify(data.result));
+        sessionStorage.setItem(
+          "compareSettings",
+          JSON.stringify({
+            ...data.result,
+            fileNameA: resumeA.name,
+            fileNameB: resumeB.name,
+          }),
+        );
         router.push("/resume-comparison");
       } else {
         const errText = await response.text();

@@ -22,6 +22,8 @@ interface ComparisonResult {
   strengthsA: string[];
   strengthsB: string[];
   recommendation: string;
+  fileNameA?: string;
+  fileNameB?: string;
 }
 
 const getTheme = (isWinner: boolean, isTie: boolean) => {
@@ -120,10 +122,10 @@ export default function ResumeComparisonPage() {
               <p className="text-gray-500 max-w-lg mx-auto mb-4">
                 {result.winnerReason}
               </p>
-              <div className="flex justify-center gap-8">
+              <div className="flex justify-center items-stretch gap-3 sm:gap-8 max-w-sm mx-auto">
                 <div
                   className={cn(
-                    "text-center p-4 rounded-xl border-2",
+                    "flex-1 min-w-0 text-center p-4 rounded-xl border-2",
                     result.winner === "A"
                       ? "border-emerald-500 bg-emerald-50"
                       : "border-gray-200",
@@ -138,13 +140,21 @@ export default function ResumeComparisonPage() {
                     {result.scoreA}
                   </span>
                   <p className="text-sm text-gray-500 mt-1">Version A</p>
+                  {result.fileNameA && (
+                    <p
+                      className="text-[10px] text-gray-400 mt-0.5 truncate"
+                      title={result.fileNameA}
+                    >
+                      {result.fileNameA}
+                    </p>
+                  )}
                 </div>
-                <div className="flex items-center text-gray-400 font-bold text-xl">
+                <div className="flex items-center text-gray-400 font-bold text-xl flex-shrink-0">
                   vs
                 </div>
                 <div
                   className={cn(
-                    "text-center p-4 rounded-xl border-2",
+                    "flex-1 min-w-0 text-center p-4 rounded-xl border-2",
                     result.winner === "B"
                       ? "border-emerald-500 bg-emerald-50"
                       : "border-gray-200",
@@ -159,6 +169,14 @@ export default function ResumeComparisonPage() {
                     {result.scoreB}
                   </span>
                   <p className="text-sm text-gray-500 mt-1">Version B</p>
+                  {result.fileNameB && (
+                    <p
+                      className="text-[10px] text-gray-400 mt-0.5 truncate"
+                      title={result.fileNameB}
+                    >
+                      {result.fileNameB}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

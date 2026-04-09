@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getGenAI } from "@/lib/ml/gemini";
+import { generateWithFallback } from "@/lib/ml/gemini";
 
 interface RelevanceCheckRequest {
   skills: string[];
@@ -11,13 +11,6 @@ interface IrrelevantItem {
   name: string;
   reason: string;
 }
-
-/** Gemini models to try, in order of preference. */
-const GEMINI_MODELS = [
-  "gemini-3-flash",
-  "gemini-2.5-flash",
-  "gemini-2.5-flash-lite",
-];
 
 export async function POST(request: Request) {
   try {
@@ -76,41 +69,30 @@ Respond ONLY in this exact JSON format with no additional text:
 If all items are legitimate and relevant, respond with:
 {"irrelevant": []}`;
 
-    // Try each model until one works
-    for (const modelName of GEMINI_MODELS) {
-      try {
-        const ai = getGenAI();
-        const model = ai.getGenerativeModel({ model: modelName });
+    try {
+      const text = await generateWithFallback([prompt]);
 
-        const result = await model.generateContent(prompt);
-        const response = result.response;
-        const text = response.text();
-
-        // Extract JSON from the response
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) continue;
-
-        const parsed = JSON.parse(jsonMatch[0]);
-
-        const issues: IrrelevantItem[] = (parsed.irrelevant || []).map(
-          (item: { type: string; name: string; reason: string }) => ({
-            type: item.type as "skill" | "certification",
-            name: item.name,
-            reason: item.reason,
-          }),
-        );
-
-        return NextResponse.json({ issues });
-      } catch {
-        // Try next model
+      // Extract JSON from the response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        return NextResponse.json({ issues: [] });
       }
-    }
 
-    // All models failed — return no issues rather than false positives
-    console.warn(
-      "All Gemini models failed for relevance check, returning no issues",
-    );
-    return NextResponse.json({ issues: [] });
+      const parsed = JSON.parse(jsonMatch[0]);
+
+      const issues: IrrelevantItem[] = (parsed.irrelevant || []).map(
+        (item: { type: string; name: string; reason: string }) => ({
+          type: item.type as "skill" | "certification",
+          name: item.name,
+          reason: item.reason,
+        }),
+      );
+
+      return NextResponse.json({ issues });
+    } catch (error) {
+      console.warn("Relevance check failed:", error);
+      return NextResponse.json({ issues: [] });
+    }
   } catch (error) {
     console.error("Error checking relevance:", error);
     return NextResponse.json({ issues: [] });

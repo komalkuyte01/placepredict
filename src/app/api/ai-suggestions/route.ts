@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getGenAI } from "@/lib/ml/gemini";
+import { generateWithFallback } from "@/lib/ml/gemini";
 import type {
   CandidateProfile,
   PlacementPrediction,
@@ -16,24 +16,12 @@ interface AISuggestion {
   priority: "high" | "medium" | "low";
 }
 
-/** Gemini models to try, in order of preference. */
-const MODEL_NAMES = [
-  "gemini-3-flash",
-  "gemini-2.5-flash",
-  "gemini-2.5-flash-lite",
-];
-
 async function tryWithModels(prompt: string): Promise<string | null> {
-  for (const modelName of MODEL_NAMES) {
-    try {
-      const ai = getGenAI();
-      const model = ai.getGenerativeModel({ model: modelName });
-      const result = await model.generateContent(prompt);
-      const response = result.response;
-      return response.text();
-    } catch {}
+  try {
+    return await generateWithFallback([prompt]);
+  } catch {
+    return null;
   }
-  return null;
 }
 
 export async function POST(request: Request) {

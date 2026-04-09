@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { generateWithFallback, getGenAI } from "@/lib/ml/gemini";
+import { generateWithFallback } from "@/lib/ml/gemini";
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,7 +47,7 @@ Rules:
 - recruiterTips: 3-5 ways to present/describe this project to impress recruiters
 - Be realistic but constructive in scoring`;
 
-    const responseText = await generateWithFallback(getGenAI(), [prompt]);
+    const responseText = await generateWithFallback([prompt]);
 
     let parsed: Record<string, unknown>;
     try {

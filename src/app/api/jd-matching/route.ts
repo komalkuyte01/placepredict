@@ -1,6 +1,6 @@
 import type { Part } from "@google/generative-ai";
 import { type NextRequest, NextResponse } from "next/server";
-import { generateWithFallback, getGenAI } from "@/lib/ml/gemini";
+import { generateWithFallback } from "@/lib/ml/gemini";
 
 export async function POST(request: NextRequest) {
   try {
@@ -82,7 +82,7 @@ Rules:
 
     promptParts.push(instructions);
 
-    const responseText = await generateWithFallback(getGenAI(), promptParts);
+    const responseText = await generateWithFallback(promptParts);
 
     // Parse JSON from response
     let parsed: Record<string, unknown>;
