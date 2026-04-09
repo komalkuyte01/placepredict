@@ -70,7 +70,12 @@ interface TimelineItem {
 function computeReadinessTimeline(
   profile: CandidateProfile,
   prediction: PlacementPrediction,
-): { items: TimelineItem[]; totalMonths: number; targetProbability: number } {
+): {
+  items: TimelineItem[];
+  totalMonths: number;
+  targetProbability: number;
+  alreadyExcellent: boolean;
+} {
   const items: TimelineItem[] = [];
 
   const dsa = profile.technical.dsaLevel;
@@ -182,15 +187,21 @@ function computeReadinessTimeline(
   const totalMonths =
     items.length > 0 ? Math.ceil(items[0]?.timeMonths ?? 0) : 0;
 
-  const targetProbability = Math.min(
-    95,
-    prediction.probability + items.length * 5 + totalMonths * 3,
-  );
+  // Ensure target is always meaningfully above current probability
+  const rawTarget = prediction.probability + items.length * 5 + totalMonths * 3;
+  const targetProbability =
+    items.length > 0
+      ? Math.max(
+          Math.round(prediction.probability) + 1,
+          Math.min(99, Math.round(rawTarget)),
+        )
+      : Math.round(prediction.probability);
 
   return {
     items,
     totalMonths,
-    targetProbability: Math.round(targetProbability),
+    targetProbability,
+    alreadyExcellent: prediction.probability >= 90 && items.length === 0,
   };
 }
 
@@ -534,93 +545,122 @@ export function PredictionResults({
       </div>
 
       {/* ========== NEW: Placement Readiness Timeline ========== */}
-      {timeline.items.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold mb-2 flex items-center gap-2 text-[hsl(240,10%,3.9%)]">
-            <Calendar className="w-5 h-5 text-[#1360fa]" />
-            Placement Readiness Timeline
-          </h3>
-          <p className="text-sm text-gray-500 mb-5">
-            You can realistically reach{" "}
-            <span className="font-semibold text-emerald-600">
-              {timeline.targetProbability}%
-            </span>{" "}
-            in{" "}
-            <span className="font-semibold text-[#1360fa]">
-              ~{timeline.totalMonths} month
-              {timeline.totalMonths !== 1 ? "s" : ""}
-            </span>
-          </p>
-
-          {/* Progress bar: current → target */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between text-xs text-gray-500 mb-1.5">
-              <span>
-                Current:{" "}
-                <span
-                  className="font-semibold"
-                  style={{ color: probabilityColor }}
-                >
-                  {prediction.probability}%
-                </span>
-              </span>
-              <span>
-                Target:{" "}
-                <span className="font-semibold text-emerald-600">
-                  {timeline.targetProbability}%
-                </span>
-              </span>
-            </div>
-            <div className="relative h-3 bg-gray-100 rounded-full overflow-hidden">
-              <div
-                className="absolute h-full rounded-full transition-all duration-700 bg-gradient-to-r from-[#1360fa] to-[#3b7efa]"
-                style={{ width: `${prediction.probability}%` }}
-              />
-              <div
-                className="absolute h-full rounded-full bg-emerald-200/50 border-r-2 border-emerald-500"
-                style={{ width: `${timeline.targetProbability}%` }}
-              />
+      {/* Timeline: show congratulatory state or improvement roadmap */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold mb-2 flex items-center gap-2 text-[hsl(240,10%,3.9%)]">
+          <Calendar className="w-5 h-5 text-[#1360fa]" />
+          Placement Readiness Timeline
+        </h3>
+        {timeline.alreadyExcellent ? (
+          <div className="flex items-center gap-3 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+            <CheckCircle className="w-6 h-6 text-emerald-500 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-emerald-700">
+                Excellent! You&apos;re already placement-ready!
+              </p>
+              <p className="text-xs text-emerald-600 mt-0.5">
+                Your profile is strong at {prediction.probability}%. Keep
+                maintaining your skills and stay consistent.
+              </p>
             </div>
           </div>
+        ) : timeline.items.length > 0 ? (
+          <>
+            <p className="text-sm text-gray-500 mb-5">
+              You can realistically reach{" "}
+              <span className="font-semibold text-emerald-600">
+                {timeline.targetProbability}%
+              </span>{" "}
+              in{" "}
+              <span className="font-semibold text-[#1360fa]">
+                ~{timeline.totalMonths} month
+                {timeline.totalMonths !== 1 ? "s" : ""}
+              </span>
+            </p>
 
-          {/* Timeline items */}
-          <div className="space-y-3">
-            {timeline.items.map((item, index) => (
-              <div
-                key={item.area}
-                className="flex items-center gap-1.5 sm:gap-3 p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-100 group hover:border-[#1360fa]/20 hover:bg-[#1360fa]/5 transition-all"
-              >
-                <div className="flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-md sm:rounded-lg bg-[#1360fa]/10 text-[#1360fa] flex-shrink-0">
-                  <span className="text-[10px] sm:text-xs font-bold">
-                    {index + 1}
+            {/* Progress bar: current → target */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between text-xs text-gray-500 mb-1.5">
+                <span>
+                  Current:{" "}
+                  <span
+                    className="font-semibold"
+                    style={{ color: probabilityColor }}
+                  >
+                    {prediction.probability}%
                   </span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1 sm:gap-2">
-                    <span className="text-[11px] sm:text-sm font-medium text-gray-900 truncate">
-                      {item.area}
-                    </span>
-                    <ArrowRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-gray-400 flex-shrink-0" />
-                    <span className="text-[11px] sm:text-sm text-emerald-600 font-medium truncate">
-                      {item.target}
+                </span>
+                <span>
+                  Target:{" "}
+                  <span className="font-semibold text-emerald-600">
+                    {timeline.targetProbability}%
+                  </span>
+                </span>
+              </div>
+              <div className="relative h-3 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className="absolute h-full rounded-full transition-all duration-700 bg-gradient-to-r from-[#1360fa] to-[#3b7efa]"
+                  style={{ width: `${prediction.probability}%` }}
+                />
+                <div
+                  className="absolute h-full rounded-full bg-emerald-200/50 border-r-2 border-emerald-500"
+                  style={{ width: `${timeline.targetProbability}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Timeline items */}
+            <div className="space-y-3">
+              {timeline.items.map((item, index) => (
+                <div
+                  key={item.area}
+                  className="flex items-center gap-1.5 sm:gap-3 p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-100 group hover:border-[#1360fa]/20 hover:bg-[#1360fa]/5 transition-all"
+                >
+                  <div className="flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 rounded-md sm:rounded-lg bg-[#1360fa]/10 text-[#1360fa] flex-shrink-0">
+                    <span className="text-[10px] sm:text-xs font-bold">
+                      {index + 1}
                     </span>
                   </div>
-                  <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 truncate">
-                    Currently:{" "}
-                    <span className="text-red-500">{item.current}</span>
-                  </p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1 sm:gap-2">
+                      <span className="text-[11px] sm:text-sm font-medium text-gray-900 truncate">
+                        {item.area}
+                      </span>
+                      <ArrowRight className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-gray-400 flex-shrink-0" />
+                      <span className="text-[11px] sm:text-sm text-emerald-600 font-medium truncate">
+                        {item.target}
+                      </span>
+                    </div>
+                    <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 truncate">
+                      Currently:{" "}
+                      <span className="text-red-500">{item.current}</span>
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1 px-1.5 py-0.5 sm:px-2.5 sm:py-1 bg-[#1360fa]/10 rounded-full flex-shrink-0 min-w-0">
+                    <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#1360fa] flex-shrink-0" />
+                    <span className="text-[10px] sm:text-xs font-medium text-[#1360fa] truncate">
+                      {item.timeEstimate}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1 px-1.5 py-0.5 sm:px-2.5 sm:py-1 bg-[#1360fa]/10 rounded-full flex-shrink-0 min-w-0">
-                  <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-[#1360fa] flex-shrink-0" />
-                  <span className="text-[10px] sm:text-xs font-medium text-[#1360fa] truncate">
-                    {item.timeEstimate}
-                  </span>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <CheckCircle className="w-6 h-6 text-blue-500 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-blue-700">
+                Great job! Your profile covers all key areas.
+              </p>
+              <p className="text-xs text-blue-600 mt-0.5">
+                Continue refining your skills and gaining experience to maintain
+                your competitive edge.
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* ========== NEW: SHAP-like Probability Breakdown ========== */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
