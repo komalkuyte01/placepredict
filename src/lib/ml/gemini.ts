@@ -58,10 +58,12 @@ let currentKeyIndex = 0;
  * Generate content with automatic key rotation AND model fallback.
  *
  * Strategy: for each API key, try ALL models before moving to the next key.
- * This maximises usage of each key's quota across different model tiers.
+ * Quota is per-model per-key on the free tier, so a key exhausted on one
+ * model may still have quota on another.
  *
- * - Quota / rate-limit error  → skip to NEXT KEY (current key is exhausted)
+ * - Quota / rate-limit error  → try NEXT MODEL (same key still has other model quota)
  * - Non-quota error (e.g. model not found) → try NEXT MODEL (same key)
+ * - All models exhausted for a key → move to NEXT KEY
  */
 export async function generateWithFallback(
   promptParts: (string | Part)[],
@@ -92,11 +94,11 @@ export async function generateWithFallback(
         lastError = err;
 
         if (isQuotaError(err)) {
-          // This key is exhausted — skip to next key immediately
+          // This model's quota is exhausted for this key — try next model (same key)
           console.warn(
-            `[Gemini] Key ...${key.slice(-6)} hit quota on ${modelName}, switching to next key...`,
+            `[Gemini] Key ...${key.slice(-6)} hit quota on ${modelName}, trying next model...`,
           );
-          break; // break inner model loop → move to next key
+          continue;
         }
 
         // Non-quota error (model unavailable, etc.) — try next model with same key
@@ -106,6 +108,11 @@ export async function generateWithFallback(
         );
       }
     }
+
+    // All models failed for this key — move to next key
+    console.warn(
+      `[Gemini] All models exhausted for key ...${key.slice(-6)}, switching to next key...`,
+    );
   }
 
   if (lastError && isQuotaError(lastError)) {
